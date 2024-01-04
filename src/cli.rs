@@ -1,4 +1,5 @@
 use clap::{arg, command, Args, Parser, Subcommand};
+use crate::palette::AsAnsiType;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -13,5 +14,8 @@ pub struct Cli {
 pub enum Commands {
     /// Display palette as ANSI colored string.
     /// Requires 24-bit color support in terminal.
-    Display,
+    Display {
+        #[clap(short, long, default_value_t, value_enum)]
+        display_type: AsAnsiType,
+    },
 }

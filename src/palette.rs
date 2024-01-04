@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::fs;
+use clap::ValueEnum;
 use log::{debug, error, info};
 use colored::*;
 
@@ -14,12 +15,13 @@ pub struct Palette {
     lcd_off: Color,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default, ValueEnum)]
 pub enum AsAnsiType {
     JustColor,
     ColorNumber,
     ColorValueDec,
-    ColorValueInt,
+    #[default]
+    ColorValueHex,
 }
 
 pub trait AsAnsiVec {
@@ -27,23 +29,61 @@ pub trait AsAnsiVec {
 }
 
 pub trait AsAnsi {
-    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredString;
+    fn as_ansi(&self, display_type: AsAnsiType, text: Option<String>) -> ColoredString;
+}
+
+pub trait ColorExt {
+    fn contrast_color(&self) -> Color;
+}
+
+impl ColorExt for Color {
+    /// Get white or black color, depending of which will be better visible by user.
+    ///
+    /// Based on https://stackoverflow.com/a/1855903
+    fn contrast_color(&self) -> Color {
+        let luminance = (0.299 * self[0] as f32) + (0.586 * self[1] as f32) + (0.114 * self[2] as f32);
+        let luminance = luminance / 255.0;
+        let value = if luminance > 0.5 {
+            0
+        } else {
+            255
+        };
+        return [value, value, value];
+    }
 }
 
 impl AsAnsi for Color {
-    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredString {
+    fn as_ansi(&self, display_type: AsAnsiType, text: Option<String>) -> ColoredString {
         match display_type {
             AsAnsiType::JustColor => {
                 "  ".on_truecolor(self[0], self[1], self[2])
             }
             AsAnsiType::ColorNumber => {
-                todo!()
+                let contrast_color = self.contrast_color();
+                format!("  {}  ", &text.expect("Provide text"))
+                    .on_truecolor(self[0], self[1], self[2])
+                    .truecolor(contrast_color[0], contrast_color[1], contrast_color[2])
             }
             AsAnsiType::ColorValueDec => {
-                todo!()
+                let contrast_color = self.contrast_color();
+                let mut padding = String::new();
+                self.into_iter().for_each(|value| {
+                    if *value < 100 {
+                        padding += " ";
+                    }
+                    if *value < 10 {
+                        padding += " ";
+                    }
+                });
+                format!("  [{}, {}, {}]  {}", self[0], self[1], self[2], padding)
+                    .on_truecolor(self[0], self[1], self[2])
+                    .truecolor(contrast_color[0], contrast_color[1], contrast_color[2])
             }
-            AsAnsiType::ColorValueInt => {
-                todo!()
+            AsAnsiType::ColorValueHex => {
+                let contrast_color = self.contrast_color();
+                format!("  #{:02x}{:02x}{:02x}  ", self[0], self[1], self[2])
+                    .on_truecolor(self[0], self[1], self[2])
+                    .truecolor(contrast_color[0], contrast_color[1], contrast_color[2])
             }
         }
     }
@@ -52,8 +92,12 @@ impl AsAnsi for Color {
 impl AsAnsiVec for Colors {
     fn as_ansi(&self, display_type: AsAnsiType) -> ColoredStringVec {
         let mut vec = ColoredStringVec(Vec::new());
-        self.iter().for_each(|color| {
-            vec.0.push(color.as_ansi(display_type))
+        self.iter().enumerate().for_each(|(i, color)| {
+            if let AsAnsiType::ColorNumber = display_type {
+                vec.0.push(color.as_ansi(display_type, Some(i.to_string())))
+            } else {
+                vec.0.push(color.as_ansi(display_type, None))
+            }
         });
         vec
     }
@@ -120,7 +164,11 @@ impl AsAnsiVec for Palette {
         vec.0.push("\n".black().on_black());
 
         vec.0.push("-- LCD Off --\n".white().on_black());
-        vec.0.push(self.lcd_off.as_ansi(display_type));
+        if let AsAnsiType::ColorNumber = display_type {
+            vec.0.push(self.lcd_off.as_ansi(display_type, Some(0.to_string())));
+        } else {
+            vec.0.push(self.lcd_off.as_ansi(display_type, None));
+        }
         vec.0.push("\n".black().on_black());
 
         vec

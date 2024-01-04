@@ -40,9 +40,9 @@ fn main() {
     let palette = Palette::load(&cli.file_name);
 
     match cli.command {
-        Commands::Display => {
+        Commands::Display { display_type } => {
             debug!("Loaded palette:\n{:?}", &palette);
-            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi(AsAnsiType::JustColor));
+            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi(AsAnsiType::ColorValueHex));
         }
     };
 }
