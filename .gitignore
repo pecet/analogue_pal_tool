@@ -3,3 +3,4 @@
 /.vscode
 /dev_assets
 *.log
+.DS_Store
