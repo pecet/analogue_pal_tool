@@ -42,7 +42,7 @@ fn main() {
     match cli.command {
         Commands::Display { display_type } => {
             debug!("Loaded palette:\n{:?}", &palette);
-            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi(AsAnsiType::ColorValueHex));
+            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi(display_type));
         }
     };
 }
