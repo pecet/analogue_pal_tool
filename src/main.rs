@@ -24,9 +24,11 @@ fn setup_logging() {
         // Output to stdout
         .chain(std::io::stdout())
         // Output to a log file
-        .chain(fern::log_file("output.log").expect("Cannot setup logging to file"))
+        .chain(fern::log_file("output.log")
+        .expect("Cannot setup logging to file"))
         // Apply the configuration
-        .apply().expect("Cannot setup logging");
+        .apply()
+        .expect("Cannot setup logging");
 }
 
 fn main() {
