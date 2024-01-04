@@ -14,25 +14,46 @@ pub struct Palette {
     lcd_off: Color,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum AsAnsiType {
+    JustColor,
+    ColorNumber,
+    ColorValueDec,
+    ColorValueInt,
+}
+
 pub trait AsAnsiVec {
-    fn as_ansi(&self) -> ColoredStringVec;
+    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredStringVec;
 }
 
 pub trait AsAnsi {
-    fn as_ansi(&self) -> ColoredString;
+    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredString;
 }
 
 impl AsAnsi for Color {
-    fn as_ansi(&self) -> ColoredString {
-        "  ".on_truecolor(self[0], self[1], self[2])
+    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredString {
+        match display_type {
+            AsAnsiType::JustColor => {
+                "  ".on_truecolor(self[0], self[1], self[2])
+            }
+            AsAnsiType::ColorNumber => {
+                todo!()
+            }
+            AsAnsiType::ColorValueDec => {
+                todo!()
+            }
+            AsAnsiType::ColorValueInt => {
+                todo!()
+            }
+        }
     }
 }
 
 impl AsAnsiVec for Colors {
-    fn as_ansi(&self) -> ColoredStringVec {
+    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredStringVec {
         let mut vec = ColoredStringVec(Vec::new());
         self.iter().for_each(|color| {
-            vec.0.push(color.as_ansi())
+            vec.0.push(color.as_ansi(display_type))
         });
         vec
     }
@@ -55,7 +76,6 @@ macro_rules! data_to_multi_array {
     };
 }
 impl Palette {
-
     /// Load palette from file
     pub fn load(file_name: &str) -> Self {
         debug!("Loading palette from {}", file_name);
@@ -78,27 +98,29 @@ impl Palette {
             lcd_off: data_to_array!(data, 48),
         }
     }
+}
 
-    pub fn as_ansi(&self) -> ColoredStringVec {
+impl AsAnsiVec for Palette {
+    fn as_ansi(&self, display_type: AsAnsiType) -> ColoredStringVec {
         let mut vec = ColoredStringVec(Vec::with_capacity(17));
         vec.0.push("-- Background --\n".white().on_black());
-        vec.0.extend(self.bg.as_ansi().0);
+        vec.0.extend(self.bg.as_ansi(display_type).0);
         vec.0.push("\n".black().on_black());
 
         vec.0.push("-- Object 0 --\n".white().on_black());
-        vec.0.extend(self.obj0.as_ansi().0);
+        vec.0.extend(self.obj0.as_ansi(display_type).0);
         vec.0.push("\n".black().on_black());
 
         vec.0.push("-- Object 1 --\n".white().on_black());
-        vec.0.extend(self.obj1.as_ansi().0);
+        vec.0.extend(self.obj1.as_ansi(display_type).0);
         vec.0.push("\n".black().on_black());
 
         vec.0.push("-- Window --\n".white().on_black());
-        vec.0.extend(self.window.as_ansi().0);
+        vec.0.extend(self.window.as_ansi(display_type).0);
         vec.0.push("\n".black().on_black());
 
         vec.0.push("-- LCD Off --\n".white().on_black());
-        vec.0.push(self.lcd_off.as_ansi());
+        vec.0.push(self.lcd_off.as_ansi(display_type));
         vec.0.push("\n".black().on_black());
 
         vec

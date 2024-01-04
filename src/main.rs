@@ -1,4 +1,4 @@
-use analogue_pal_tool::palette::Palette;
+use analogue_pal_tool::palette::{AsAnsiType, Palette, AsAnsiVec};
 use fern;
 use log::{LevelFilter, debug, info};
 use chrono::Local;
@@ -42,7 +42,7 @@ fn main() {
     match cli.command {
         Commands::Display => {
             debug!("Loaded palette:\n{:?}", &palette);
-            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi());
+            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi(AsAnsiType::JustColor));
         }
     };
 }
