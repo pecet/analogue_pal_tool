@@ -38,6 +38,22 @@ impl AsAnsiVec for Colors {
     }
 }
 
+macro_rules! data_to_array {
+    ($data: ident, $start: expr) => {
+        $data[$start .. $start + 3].try_into().expect("Cannot convert vec to fixed size array")
+    };
+}
+
+macro_rules! data_to_multi_array {
+    ($data: ident, $start: literal) => {
+        [
+            data_to_array!($data, $start),
+            data_to_array!($data, $start + 3),
+            data_to_array!($data, $start + 6),
+            data_to_array!($data, $start + 9),
+        ]
+    };
+}
 impl Palette {
 
     /// Load palette from file
@@ -54,33 +70,12 @@ impl Palette {
             error!("Footer of palette file is incorrect, will try to read anyway")
         }
         info!("Palette from {} loaded", file_name);
-        // TODO: yes, this is stupid: add fancy macro/fn below or find std Rust fn to do this better
         Self {
-            bg: [
-                [data[0], data[1], data[2]],
-                [data[3], data[4], data[5]],
-                [data[6], data[7], data[8]],
-                [data[9], data[10], data[11]],
-            ],
-            obj0: [
-                [data[12], data[13], data[14]],
-                [data[15], data[16], data[17]],
-                [data[18], data[19], data[20]],
-                [data[21], data[22], data[23]],
-            ],
-            obj1: [
-                [data[24], data[25], data[26]],
-                [data[27], data[28], data[29]],
-                [data[30], data[31], data[32]],
-                [data[33], data[34], data[35]],
-            ],
-            window: [
-                [data[36], data[37], data[38]],
-                [data[39], data[40], data[41]],
-                [data[42], data[43], data[44]],
-                [data[45], data[46], data[47]],
-            ],
-            lcd_off: [data[48], data[49], data[50]],
+            bg: data_to_multi_array!(data, 0),
+            obj0: data_to_multi_array!(data, 12),
+            obj1: data_to_multi_array!(data, 24),
+            window: data_to_multi_array!(data, 36),
+            lcd_off: data_to_array!(data, 48),
         }
     }
 

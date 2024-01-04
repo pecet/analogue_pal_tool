@@ -3,7 +3,7 @@ use fern;
 use log::{LevelFilter, debug, info};
 use chrono::Local;
 use clap::Parser;
-use analogue_pal_tool::cli::Cli;
+use analogue_pal_tool::cli::{Cli, Commands};
 
 fn setup_logging() {
     fern::Dispatch::new()
@@ -38,6 +38,11 @@ fn main() {
     let cli = Cli::parse();
 
     let palette = Palette::load(&cli.file_name);
-    debug!("Loaded palette:\n{:?}", &palette);
-    info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi());
+
+    match cli.command {
+        Commands::Display => {
+            debug!("Loaded palette:\n{:?}", &palette);
+            info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi());
+        }
+    };
 }
