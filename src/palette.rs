@@ -1,5 +1,7 @@
+use std::fmt::{Display, Formatter};
 use std::fs;
 use log::{debug, error, info};
+use colored::*;
 
 type Color = [u8; 3];
 type Colors = [Color; 4];
@@ -12,7 +14,33 @@ pub struct Palette {
     lcd_off: Color,
 }
 
+pub trait AsAnsiVec {
+    fn as_ansi(&self) -> ColoredStringVec;
+}
+
+pub trait AsAnsi {
+    fn as_ansi(&self) -> ColoredString;
+}
+
+impl AsAnsi for Color {
+    fn as_ansi(&self) -> ColoredString {
+        "  ".on_truecolor(self[0], self[1], self[2])
+    }
+}
+
+impl AsAnsiVec for Colors {
+    fn as_ansi(&self) -> ColoredStringVec {
+        let mut vec = ColoredStringVec(Vec::new());
+        self.iter().for_each(|color| {
+            vec.0.push(color.as_ansi())
+        });
+        vec
+    }
+}
+
 impl Palette {
+
+    /// Load palette from file
     pub fn load(file_name: &str) -> Self {
         debug!("Loading palette from {}", file_name);
         let data = fs::read(file_name).expect("Cannot read palette file");
@@ -54,5 +82,40 @@ impl Palette {
             ],
             lcd_off: [data[48], data[49], data[50]],
         }
+    }
+
+    pub fn as_ansi(&self) -> ColoredStringVec {
+        let mut vec = ColoredStringVec(Vec::with_capacity(17));
+        vec.0.push("-- Background --\n".white().on_black());
+        vec.0.extend(self.bg.as_ansi().0);
+        vec.0.push("\n".black().on_black());
+
+        vec.0.push("-- Object 0 --\n".white().on_black());
+        vec.0.extend(self.obj0.as_ansi().0);
+        vec.0.push("\n".black().on_black());
+
+        vec.0.push("-- Object 1 --\n".white().on_black());
+        vec.0.extend(self.obj1.as_ansi().0);
+        vec.0.push("\n".black().on_black());
+
+        vec.0.push("-- Window --\n".white().on_black());
+        vec.0.extend(self.window.as_ansi().0);
+        vec.0.push("\n".black().on_black());
+
+        vec.0.push("-- LCD Off --\n".white().on_black());
+        vec.0.push(self.lcd_off.as_ansi());
+        vec.0.push("\n".black().on_black());
+
+        vec
+    }
+}
+
+pub struct ColoredStringVec(pub(self) Vec<ColoredString>);
+
+impl Display for ColoredStringVec {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Ok(for colored_string in &self.0 {
+            write!(f, "{}", colored_string)?;
+        })
     }
 }
