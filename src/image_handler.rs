@@ -49,7 +49,14 @@ impl ImageHandler {
         for pixel in image.pixels() {
             let (x, y, color) = pixel;
             let color_rgb = &color.to_rgb().0;
-            let result = template_colors.keys().find(|c| c[0] == color_rgb[0]);
+            // for some reason colors differ from actually defined
+            // so give us some tolerance around that
+            let tolerance = 7;
+            let result = template_colors.keys().find(
+                |c|
+                    c[0] <= color_rgb[0].saturating_add(tolerance) &&
+                    c[0] >= color_rgb[0].saturating_sub(tolerance)
+            );
             if let Some(key) = result {
                 let value = template_colors.get(key).unwrap();
                 let new_color = Rgb(*palette_colors.get(value).unwrap());
