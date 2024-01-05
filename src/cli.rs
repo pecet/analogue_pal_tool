@@ -29,7 +29,7 @@ pub enum Commands {
         output_pal_file: String,
     },
     /// Colorize input screenshot .png file using palette provided and save as new image file
-    ColorImage {
+    ColorizeImage {
         /// Name / path to .pal file to read
         pal_file_name: String,
         /// Name / path to input screenshot .png file to read

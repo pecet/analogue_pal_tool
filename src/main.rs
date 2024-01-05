@@ -58,7 +58,7 @@ fn main() {
             let palette = Palette::default();
             palette.save(&output_pal_file);
         }
-        Commands::ColorImage {
+        Commands::ColorizeImage {
             pal_file_name,
             input_image_file,
             output_image_file,
