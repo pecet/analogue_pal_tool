@@ -1,18 +1,56 @@
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use clap::ValueEnum;
 use log::{debug, error, info};
 use colored::*;
 
 type Color = [u8; 3];
 type Colors = [Color; 4];
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Palette {
     bg: Colors,
     obj0: Colors,
     obj1: Colors,
     window: Colors,
     lcd_off: Color,
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self {
+            bg: [
+                [0, 0, 0],
+                [82, 82, 82],
+                [174, 174, 174],
+                [250, 250, 250],
+            ],
+            // just offset colors a bit
+            // it will make almost no difference when displayed
+            // but later we can use those colors to identify them on screenshots
+            // TODO: probably move these calculations to macro or fn
+            obj0: [
+                [0 + 1, 0, 0],
+                [82 + 1, 82, 82],
+                [174 + 1, 174, 174],
+                [250 + 1, 250, 250],
+            ],
+            obj1: [
+                [0 + 2, 0, 0],
+                [82 + 2, 82, 82],
+                [174 + 2, 174, 174],
+                [250 + 2, 250, 250],
+            ],
+            window: [
+                [0 + 3, 0, 0],
+                [82 + 3, 82, 82],
+                [174 + 3, 174, 174],
+                [250 + 3, 250, 250],
+            ],
+            lcd_off: [0 + 4, 0, 0],
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Default, ValueEnum)]
@@ -141,6 +179,31 @@ impl Palette {
             window: data_to_multi_array!(data, 36),
             lcd_off: data_to_array!(data, 48),
         }
+    }
+
+    pub fn save(&self, file_name: &str) {
+        debug!("Saving palette to {}", file_name);
+        let mut file = File::create(file_name)
+            .expect(&format!("Cannot create file {}", file_name));
+
+        // TODO: macro this
+        let data: Vec<u8> = self.bg.into_iter().flatten().collect();
+        file.write_all(&data).expect(&format!("Cannot write 'bg' to {}", file_name));
+
+        let data: Vec<u8> = self.obj0.into_iter().flatten().collect();
+        file.write_all(&data).expect(&format!("Cannot write 'obj0' to {}", file_name));
+
+        let data: Vec<u8> = self.obj1.into_iter().flatten().collect();
+        file.write_all(&data).expect(&format!("Cannot write 'obj1' to {}", file_name));
+
+        let data: Vec<u8> = self.window.into_iter().flatten().collect();
+        file.write_all(&data).expect(&format!("Cannot write 'window' to {}", file_name));
+
+        let data: Vec<u8> = self.lcd_off.to_vec();
+        file.write_all(&data).expect(&format!("Cannot write 'lcd_off' to {}", file_name));
+
+        let footer: Vec<u8> = vec![0x81, 0x41, 0x50, 0x47, 0x42];
+        file.write_all(&footer).expect(&format!("Cannot write 'footer' to {}", file_name));
     }
 }
 

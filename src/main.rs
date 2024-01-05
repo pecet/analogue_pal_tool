@@ -34,15 +34,17 @@ fn setup_logging() {
 fn main() {
     setup_logging();
     info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH"));
-
     let cli = Cli::parse();
 
-    let palette = Palette::load(&cli.file_name);
-
     match cli.command {
-        Commands::Display { display_type } => {
+        Commands::Display { display_type, pal_file_name } => {
+            let palette = Palette::load(&pal_file_name);
             debug!("Loaded palette:\n{:?}", &palette);
             info!("Palette as ANSI 24-bit colored strings:\n{}", palette.as_ansi(display_type));
+        }
+        Commands::CreateTemplatePal { output_pal_file } => {
+            let palette = Palette::default();
+            palette.save(&output_pal_file);
         }
     };
 }
