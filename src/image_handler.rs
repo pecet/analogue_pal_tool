@@ -7,6 +7,7 @@ use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
+use image::imageops::FilterType;
 
 pub struct ImageHandler;
 
@@ -16,8 +17,9 @@ impl ImageHandler {
 
     /// For some reason colors found on screenshots
     /// so give us some tolerance around that
-    const TEMPLATE_TOLERANCE: u8 = 7;
-    pub fn color_image(pal_file: &str, input_image: &str, output_image_file: &str) {
+    const TEMPLATE_TOLERANCE_UPPER: u8 = 8;
+    const TEMPLATE_TOLERANCE_LOWER: u8 = 8;
+    pub fn color_image(pal_file: &str, input_image: &str, output_image_file: &str, output_scale: Option<u8>) {
         debug!("Opening palette file {}", pal_file);
         let palette = Palette::load(pal_file);
         let palette_colors: HashMap<String, [u8; 3]> = palette.into();
@@ -64,8 +66,8 @@ impl ImageHandler {
             let color_rgb = &color.to_rgb().0;
             let result = template_colors.keys().find(
                 |c|
-                    c[0] <= color_rgb[0].saturating_add(Self::TEMPLATE_TOLERANCE) &&
-                    c[0] >= color_rgb[0].saturating_sub(Self::TEMPLATE_TOLERANCE)
+                    c[0] <= color_rgb[0].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER) &&
+                    c[0] >= color_rgb[0].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
             );
             if let Some(key) = result {
                 let value = template_colors.get(key).unwrap();
@@ -76,6 +78,11 @@ impl ImageHandler {
                 skipped += 1;
             }
         }
+        let mut output_image = if let Some(scale) = output_scale {
+            output_image.resize(output_image.width() * scale as u32, output_image.height() * scale as u32, FilterType::Nearest)
+        } else {
+            output_image
+        };
         let mut bytes: Vec<u8> = Vec::new();
         output_image
             .write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)

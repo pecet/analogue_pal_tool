@@ -39,5 +39,10 @@ pub enum Commands {
         /// Name / path to .png file to write
         #[clap(short, long = "output", required = true)]
         output_image_file: String,
+        /// Scale factor to apply for output image, only integer values are supported
+        ///
+        /// If not supplied no scaling is applied
+        #[clap(short = 's', long = "scale")]
+        scale: Option<u8>,
     },
 }

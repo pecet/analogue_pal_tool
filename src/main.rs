@@ -62,8 +62,9 @@ fn main() {
             pal_file_name,
             input_image_file,
             output_image_file,
+            scale,
         } => {
-            ImageHandler::color_image(&pal_file_name, &input_image_file, &output_image_file);
+            ImageHandler::color_image(&pal_file_name, &input_image_file, &output_image_file, scale);
         }
     };
 }
