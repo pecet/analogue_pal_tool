@@ -59,7 +59,7 @@ impl ImageHandler {
         let mut file = File::create(output_image_file)
             .expect(&format!("Cannot create image file {}", output_image_file));
         file.write_all(&bytes).expect(&format!("Cannot write to image file {}", output_image_file));
-        debug!("Processed {} of {} pixels - {}%", processed, processed + skipped,
+        debug!("Processed {} of {} pixels ~{:.2}%", processed, processed + skipped,
             processed as f32 / (processed + skipped) as f32 * 100.0);
         info!("Saved image file {}", output_image_file);
     }
