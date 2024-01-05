@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::fs::File;
@@ -24,31 +25,27 @@ impl Default for Palette {
                 [0, 0, 0],
                 [82, 82, 82],
                 [174, 174, 174],
-                [250, 250, 250],
+                [200, 250, 250],
             ],
-            // just offset colors a bit
-            // it will make almost no difference when displayed
-            // but later we can use those colors to identify them on screenshots
-            // TODO: probably move these calculations to macro or fn
             obj0: [
-                [0 + 1, 0, 0],
-                [82 + 1, 82, 82],
-                [174 + 1, 174, 174],
-                [250 + 1, 250, 250],
+                [0 + 15, 0, 0],
+                [82 + 15, 82, 82],
+                [174 + 15, 174, 174],
+                [200 + 15, 250, 250],
             ],
             obj1: [
-                [0 + 2, 0, 0],
-                [82 + 2, 82, 82],
-                [174 + 2, 174, 174],
-                [250 + 2, 250, 250],
+                [0 + 30, 0, 0],
+                [82 + 30, 82, 82],
+                [174 + 30, 174, 174],
+                [200 + 30, 250, 250],
             ],
             window: [
-                [0 + 3, 0, 0],
-                [82 + 3, 82, 82],
-                [174 + 3, 174, 174],
-                [250 + 3, 250, 250],
+                [0 + 45, 0, 0],
+                [82 + 45, 82, 82],
+                [174 + 45, 174, 174],
+                [200 + 45, 250, 250],
             ],
-            lcd_off: [0 + 4, 0, 0],
+            lcd_off: [0 + 60, 0, 0],
         }
     }
 }
@@ -204,6 +201,66 @@ impl Palette {
 
         let footer: Vec<u8> = vec![0x81, 0x41, 0x50, 0x47, 0x42];
         file.write_all(&footer).expect(&format!("Cannot write 'footer' to {}", file_name));
+    }
+}
+
+/// Converts to hashset, only include UNIQUE colors (!)
+/// This is why colors for template / default must be unique also
+impl From<Palette> for HashSet<Color> {
+    fn from(value: Palette) -> Self {
+        let mut color_set = HashSet::new();
+        value.bg.into_iter()
+            .chain(value.obj0.into_iter())
+            .chain(value.obj1.into_iter())
+            .chain(value.window.into_iter())
+            .for_each(|color| {
+                color_set.insert(color);
+            });
+        color_set.insert(value.lcd_off);
+        color_set
+    }
+}
+
+impl From<Palette> for HashMap<Color, String>{
+    fn from(value: Palette) -> Self {
+        let mut color_map = HashMap::new();
+        value.bg.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(color, format!("bg_{}", i));
+        });
+        value.obj0.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(color, format!("obj0_{}", i));
+        });
+        value.obj1.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(color, format!("obj1_{}", i));
+        });
+        value.window.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(color, format!("window_{}", i));
+        });
+        color_map.insert(value.lcd_off, "lcd_off".to_string());
+        color_map
+    }
+}
+
+// TODO: somehow make above implementation and below one share code
+// maybe put values to pairs first, and then try to do that?
+// or make macro, whatever you do this is duplication sucks
+impl From<Palette> for HashMap<String, Color>{
+    fn from(value: Palette) -> Self {
+        let mut color_map = HashMap::new();
+        value.bg.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(format!("bg_{}", i), color);
+        });
+        value.obj0.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(format!("obj0_{}", i), color);
+        });
+        value.obj1.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(format!("obj1_{}", i), color);
+        });
+        value.window.into_iter().enumerate().for_each(|(i, color)| {
+            color_map.insert(format!("window_{}", i), color);
+        });
+        color_map.insert("lcd_off".to_string(), value.lcd_off);
+        color_map
     }
 }
 

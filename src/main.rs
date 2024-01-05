@@ -5,6 +5,7 @@ use chrono::Local;
 use clap::Parser;
 use colored::Colorize;
 use analogue_pal_tool::cli::{Cli, Commands};
+use analogue_pal_tool::image_handler::ImageHandler;
 
 fn setup_logging() {
     fern::Dispatch::new()
@@ -45,6 +46,9 @@ fn main() {
         Commands::CreateTemplatePal { output_pal_file } => {
             let palette = Palette::default();
             palette.save(&output_pal_file);
+        }
+        Commands::ColorImage { pal_file_name, input_image_file, output_image_file } => {
+            ImageHandler::color_image(&pal_file_name, &input_image_file, &output_image_file);
         }
     };
 }
