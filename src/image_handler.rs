@@ -48,8 +48,10 @@ impl ImageHandler {
         let mut skipped = 0_usize;
         for pixel in image.pixels() {
             let (x, y, color) = pixel;
-            if template_colors.contains_key(&color.to_rgb().0) {
-                let value = template_colors.get(&color.to_rgb().0).unwrap();
+            let color_rgb = &color.to_rgb().0;
+            let result = template_colors.keys().find(|c| c[0] == color_rgb[0]);
+            if let Some(key) = result {
+                let value = template_colors.get(key).unwrap();
                 let new_color = Rgb(*palette_colors.get(value).unwrap());
                 output_image.put_pixel(x, y, new_color.to_rgba());
                 processed += 1;
