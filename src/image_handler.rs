@@ -1,11 +1,11 @@
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use image::{GenericImage, GenericImageView, Pixel, Rgb};
-use log::{debug, info, log};
-use crate::palette::{AsAnsiVec, Palette};
 use crate::palette::AsAnsi;
 use crate::palette::AsAnsiType;
+use crate::palette::{AsAnsiVec, Palette};
 use image::io::Reader;
+use image::{GenericImage, GenericImageView, Pixel, Rgb};
+use log::{debug, info};
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
 use std::io::{Cursor, Write};
 
 pub struct ImageHandler;
@@ -14,12 +14,12 @@ impl ImageHandler {
     pub fn color_image(pal_file: &str, input_image: &str, output_image_file: &str) {
         debug!("Opening palette file {}", pal_file);
         let palette = Palette::load(pal_file);
-        let mut palette_colors: HashMap<String, [u8; 3]> = palette.into();
+        let palette_colors: HashMap<String, [u8; 3]> = palette.into();
         debug!("Opening image file {}", input_image);
         let image = Reader::open(input_image)
-            .expect(&format!("Cannot open image file {}", input_image))
+            .unwrap_or_else(|_| panic!("Cannot open image file {}", input_image))
             .decode()
-            .expect(&format!("Cannot decode image file {}", input_image));
+            .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
         info!("Opened image file {}", input_image);
         let mut colors = HashSet::new();
         for pixel in image.pixels() {
@@ -29,15 +29,19 @@ impl ImageHandler {
             colors.insert(color);
         }
         debug!("Found {} unique colors in image", colors.len());
-        colors.into_iter().enumerate().for_each(|(i,color)| {
-            debug!("{}{} {}",
+        colors.into_iter().enumerate().for_each(|(i, color)| {
+            debug!(
+                "{}{} {}",
                 color.as_ansi(AsAnsiType::ColorValueHex, None),
                 color.as_ansi(AsAnsiType::ColorValueDec, None),
                 i
             );
         });
         let template = Palette::default();
-        debug!("Template palette \n{}", template.as_ansi(AsAnsiType::ColorValueDec));
+        debug!(
+            "Template palette \n{}",
+            template.as_ansi(AsAnsiType::ColorValueDec)
+        );
         let template_colors: HashMap<[u8; 3], String> = template.into();
         let mut output_image = image.clone();
         let mut processed = 0_usize;
@@ -46,21 +50,27 @@ impl ImageHandler {
             let (x, y, color) = pixel;
             if template_colors.contains_key(&color.to_rgb().0) {
                 let value = template_colors.get(&color.to_rgb().0).unwrap();
-                let new_color = Rgb(palette_colors.get(value).unwrap().clone());
+                let new_color = Rgb(*palette_colors.get(value).unwrap());
                 output_image.put_pixel(x, y, new_color.to_rgba());
                 processed += 1;
             } else {
                 skipped += 1;
             }
-        };
+        }
         let mut bytes: Vec<u8> = Vec::new();
-        output_image.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)
+        output_image
+            .write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)
             .expect("Cannot create output file bytes");
         let mut file = File::create(output_image_file)
-            .expect(&format!("Cannot create image file {}", output_image_file));
-        file.write_all(&bytes).expect(&format!("Cannot write to image file {}", output_image_file));
-        debug!("Processed {} of {} pixels ~{:.2}%", processed, processed + skipped,
-            processed as f32 / (processed + skipped) as f32 * 100.0);
+            .unwrap_or_else(|_| panic!("Cannot create image file {}", output_image_file));
+        file.write_all(&bytes)
+            .unwrap_or_else(|_| panic!("Cannot write to image file {}", output_image_file));
+        debug!(
+            "Processed {} of {} pixels ~{:.2}%",
+            processed,
+            processed + skipped,
+            processed as f32 / (processed + skipped) as f32 * 100.0
+        );
         info!("Saved image file {}", output_image_file);
     }
 }

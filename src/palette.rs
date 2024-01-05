@@ -1,11 +1,11 @@
+use clap::ValueEnum;
+use colored::*;
+use log::{debug, error, info};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use clap::ValueEnum;
-use log::{debug, error, info};
-use colored::*;
 
 type Color = [u8; 3];
 type Colors = [Color; 4];
@@ -21,31 +21,26 @@ pub struct Palette {
 impl Default for Palette {
     fn default() -> Self {
         Self {
-            bg: [
-                [0, 0, 0],
-                [82, 82, 82],
-                [174, 174, 174],
-                [200, 250, 250],
-            ],
+            bg: [[0, 0, 0], [82, 82, 82], [174, 174, 174], [200, 250, 250]],
             obj0: [
-                [0 + 15, 0, 0],
+                [15, 0, 0],
                 [82 + 15, 82, 82],
                 [174 + 15, 174, 174],
                 [200 + 15, 250, 250],
             ],
             obj1: [
-                [0 + 30, 0, 0],
+                [30, 0, 0],
                 [82 + 30, 82, 82],
                 [174 + 30, 174, 174],
                 [200 + 30, 250, 250],
             ],
             window: [
-                [0 + 45, 0, 0],
+                [45, 0, 0],
                 [82 + 45, 82, 82],
                 [174 + 45, 174, 174],
                 [200 + 45, 250, 250],
             ],
-            lcd_off: [0 + 60, 0, 0],
+            lcd_off: [60, 0, 0],
         }
     }
 }
@@ -76,23 +71,18 @@ impl ColorExt for Color {
     ///
     /// Based on https://stackoverflow.com/a/1855903
     fn contrast_color(&self) -> Color {
-        let luminance = (0.299 * self[0] as f32) + (0.586 * self[1] as f32) + (0.114 * self[2] as f32);
+        let luminance =
+            (0.299 * self[0] as f32) + (0.586 * self[1] as f32) + (0.114 * self[2] as f32);
         let luminance = luminance / 255.0;
-        let value = if luminance > 0.5 {
-            0
-        } else {
-            255
-        };
-        return [value, value, value];
+        let value = if luminance > 0.5 { 0 } else { 255 };
+        [value, value, value]
     }
 }
 
 impl AsAnsi for Color {
     fn as_ansi(&self, display_type: AsAnsiType, text: Option<String>) -> ColoredString {
         match display_type {
-            AsAnsiType::JustColor => {
-                "  ".on_truecolor(self[0], self[1], self[2])
-            }
+            AsAnsiType::JustColor => "  ".on_truecolor(self[0], self[1], self[2]),
             AsAnsiType::ColorNumber => {
                 let contrast_color = self.contrast_color();
                 format!("  {}  ", &text.expect("Provide text"))
@@ -102,7 +92,7 @@ impl AsAnsi for Color {
             AsAnsiType::ColorValueDec => {
                 let contrast_color = self.contrast_color();
                 let mut padding = String::new();
-                self.into_iter().for_each(|value| {
+                self.iter().for_each(|value| {
                     if *value < 100 {
                         padding += " ";
                     }
@@ -140,7 +130,9 @@ impl AsAnsiVec for Colors {
 
 macro_rules! data_to_array {
     ($data: ident, $start: expr) => {
-        $data[$start .. $start + 3].try_into().expect("Cannot convert vec to fixed size array")
+        $data[$start..$start + 3]
+            .try_into()
+            .expect("Cannot convert vec to fixed size array")
     };
 }
 
@@ -160,10 +152,18 @@ impl Palette {
         debug!("Loading palette from {}", file_name);
         let data = fs::read(file_name).expect("Cannot read palette file");
         if data.len() != 56 {
-            panic!("Palette file should have exactly 56 bytes, but it has {} bytes", data.len());
+            panic!(
+                "Palette file should have exactly 56 bytes, but it has {} bytes",
+                data.len()
+            );
         }
         // check footer
-        if data[51] == 0x81 && data[52] == 0x41 && data[53] == 0x50 && data[54] == 0x47 && data[55] == 0x42 {
+        if data[51] == 0x81
+            && data[52] == 0x41
+            && data[53] == 0x50
+            && data[54] == 0x47
+            && data[55] == 0x42
+        {
             debug!("Footer of palette file is correct");
         } else {
             error!("Footer of palette file is incorrect, will try to read anyway")
@@ -180,27 +180,33 @@ impl Palette {
 
     pub fn save(&self, file_name: &str) {
         debug!("Saving palette to {}", file_name);
-        let mut file = File::create(file_name)
-            .expect(&format!("Cannot create file {}", file_name));
+        let mut file =
+            File::create(file_name).unwrap_or_else(|_| panic!("Cannot create file {}", file_name));
 
         // TODO: macro this
         let data: Vec<u8> = self.bg.into_iter().flatten().collect();
-        file.write_all(&data).expect(&format!("Cannot write 'bg' to {}", file_name));
+        file.write_all(&data)
+            .unwrap_or_else(|_| panic!("Cannot write 'bg' to {}", file_name));
 
         let data: Vec<u8> = self.obj0.into_iter().flatten().collect();
-        file.write_all(&data).expect(&format!("Cannot write 'obj0' to {}", file_name));
+        file.write_all(&data)
+            .unwrap_or_else(|_| panic!("Cannot write 'obj0' to {}", file_name));
 
         let data: Vec<u8> = self.obj1.into_iter().flatten().collect();
-        file.write_all(&data).expect(&format!("Cannot write 'obj1' to {}", file_name));
+        file.write_all(&data)
+            .unwrap_or_else(|_| panic!("Cannot write 'obj1' to {}", file_name));
 
         let data: Vec<u8> = self.window.into_iter().flatten().collect();
-        file.write_all(&data).expect(&format!("Cannot write 'window' to {}", file_name));
+        file.write_all(&data)
+            .unwrap_or_else(|_| panic!("Cannot write 'window' to {}", file_name));
 
         let data: Vec<u8> = self.lcd_off.to_vec();
-        file.write_all(&data).expect(&format!("Cannot write 'lcd_off' to {}", file_name));
+        file.write_all(&data)
+            .unwrap_or_else(|_| panic!("Cannot write 'lcd_off' to {}", file_name));
 
         let footer: Vec<u8> = vec![0x81, 0x41, 0x50, 0x47, 0x42];
-        file.write_all(&footer).expect(&format!("Cannot write 'footer' to {}", file_name));
+        file.write_all(&footer)
+            .unwrap_or_else(|_| panic!("Cannot write 'footer' to {}", file_name));
     }
 }
 
@@ -209,10 +215,12 @@ impl Palette {
 impl From<Palette> for HashSet<Color> {
     fn from(value: Palette) -> Self {
         let mut color_set = HashSet::new();
-        value.bg.into_iter()
-            .chain(value.obj0.into_iter())
-            .chain(value.obj1.into_iter())
-            .chain(value.window.into_iter())
+        value
+            .bg
+            .into_iter()
+            .chain(value.obj0)
+            .chain(value.obj1)
+            .chain(value.window)
             .for_each(|color| {
                 color_set.insert(color);
             });
@@ -221,7 +229,7 @@ impl From<Palette> for HashSet<Color> {
     }
 }
 
-impl From<Palette> for HashMap<Color, String>{
+impl From<Palette> for HashMap<Color, String> {
     fn from(value: Palette) -> Self {
         let mut color_map = HashMap::new();
         value.bg.into_iter().enumerate().for_each(|(i, color)| {
@@ -244,7 +252,7 @@ impl From<Palette> for HashMap<Color, String>{
 // TODO: somehow make above implementation and below one share code
 // maybe put values to pairs first, and then try to do that?
 // or make macro, whatever you do this is duplication sucks
-impl From<Palette> for HashMap<String, Color>{
+impl From<Palette> for HashMap<String, Color> {
     fn from(value: Palette) -> Self {
         let mut color_map = HashMap::new();
         value.bg.into_iter().enumerate().for_each(|(i, color)| {
@@ -285,7 +293,8 @@ impl AsAnsiVec for Palette {
 
         vec.0.push("-- LCD Off --\n".white().on_black());
         if let AsAnsiType::ColorNumber = display_type {
-            vec.0.push(self.lcd_off.as_ansi(display_type, Some(0.to_string())));
+            vec.0
+                .push(self.lcd_off.as_ansi(display_type, Some(0.to_string())));
         } else {
             vec.0.push(self.lcd_off.as_ansi(display_type, None));
         }
@@ -299,8 +308,9 @@ pub struct ColoredStringVec(pub(self) Vec<ColoredString>);
 
 impl Display for ColoredStringVec {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Ok(for colored_string in &self.0 {
+        for colored_string in &self.0 {
             write!(f, "{}", colored_string)?;
-        })
+        }
+        Ok(())
     }
 }

@@ -1,5 +1,5 @@
-use clap::{arg, command, Args, Parser, Subcommand};
 use crate::palette::AsAnsiType;
+use clap::{command, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -39,5 +39,5 @@ pub enum Commands {
         /// Name / path to .png file to write
         #[clap(short, long = "output", required = true)]
         output_image_file: String,
-    }
+    },
 }
