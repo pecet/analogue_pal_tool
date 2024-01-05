@@ -67,7 +67,11 @@ impl ImageHandler {
             let result = template_colors.keys().find(
                 |c|
                     c[0] <= color_rgb[0].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER) &&
-                    c[0] >= color_rgb[0].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
+                    c[0] >= color_rgb[0].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER) &&
+                    c[1] <= color_rgb[1].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER) &&
+                    c[1] >= color_rgb[1].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER) &&
+                    c[2] <= color_rgb[2].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER) &&
+                    c[2] >= color_rgb[2].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
             );
             if let Some(key) = result {
                 let value = template_colors.get(key).unwrap();
