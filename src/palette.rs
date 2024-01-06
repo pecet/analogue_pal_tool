@@ -7,8 +7,8 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 
-type Color = [u8; 3];
-type Colors = [Color; 4];
+pub type Color = [u8; 3];
+pub type Colors = [Color; 4];
 #[derive(Debug, Clone)]
 pub struct Palette {
     bg: Colors,

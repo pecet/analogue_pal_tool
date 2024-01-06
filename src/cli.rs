@@ -2,7 +2,7 @@ use crate::palette::AsAnsiType;
 use clap::{command, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version = env!("GIT_HASH"), about)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -12,6 +12,7 @@ pub struct Cli {
 pub enum Commands {
     /// Display palette as ANSI colored string.
     /// Requires 24-bit color support in terminal.
+    #[clap(alias = "d")]
     Display {
         #[clap(short, long, default_value_t, value_enum)]
         display_type: AsAnsiType,
@@ -23,12 +24,14 @@ pub enum Commands {
     /// After generating such .pal and loading it on your Analogue Pocket
     /// create screenshots with it, then these screenshots can be used
     /// to preview other palettes.
+    #[clap(alias = "t")]
     CreateTemplatePal {
         #[clap(short, long = "output", required = true)]
         /// Name / path to .pal file to write
         output_pal_file: String,
     },
     /// Colorize input screenshot .png file using palette provided and save as new image file
+    #[clap(aliases = ["c", "color-image"])]
     ColorizeImage {
         /// Name / path to .pal file to read
         pal_file_name: String,

@@ -1,9 +1,7 @@
-use crate::palette::AsAnsi;
-use crate::palette::AsAnsiType;
-use crate::palette::{AsAnsiVec, Palette};
+use crate::palette::{AsAnsiVec, Palette, Color, Colors, AsAnsiType, AsAnsi};
 use image::imageops::FilterType;
 use image::io::Reader;
-use image::{GenericImage, GenericImageView, Pixel, Rgb};
+use image::{DynamicImage, GenericImage, GenericImageView, Pixel, Rgb};
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -20,21 +18,8 @@ impl ImageHandler {
     /// so give us some tolerance around that
     const TEMPLATE_TOLERANCE_UPPER: u8 = 8;
     const TEMPLATE_TOLERANCE_LOWER: u8 = 8;
-    pub fn color_image(
-        pal_file: &str,
-        input_image: &str,
-        output_image_file: &str,
-        output_scale: Option<u8>,
-    ) {
-        debug!("Opening palette file {}", pal_file);
-        let palette = Palette::load(pal_file);
-        let palette_colors: HashMap<String, [u8; 3]> = palette.into();
-        debug!("Opening image file {}", input_image);
-        let image = Reader::open(input_image)
-            .unwrap_or_else(|_| panic!("Cannot open image file {}", input_image))
-            .decode()
-            .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
-        info!("Opened image file {}", input_image);
+
+    fn find_unique_colors(image: &DynamicImage) -> HashSet<Color> {
         let mut colors = HashSet::new();
         for pixel in image.pixels() {
             let (_, _, color) = pixel;
@@ -43,6 +28,25 @@ impl ImageHandler {
             colors.insert(color);
         }
         debug!("Found {} unique colors in image", colors.len());
+        colors
+    }
+
+    pub fn color_image(
+        pal_file: &str,
+        input_image: &str,
+        output_image_file: &str,
+        output_scale: Option<u8>,
+    ) {
+        debug!("Opening palette file {}", pal_file);
+        let palette = Palette::load(pal_file);
+        let palette_colors: HashMap<String, Color> = palette.into();
+        debug!("Opening image file {}", input_image);
+        let image = Reader::open(input_image)
+            .unwrap_or_else(|_| panic!("Cannot open image file {}", input_image))
+            .decode()
+            .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
+        info!("Opened image file {}", input_image);
+        let colors = Self::find_unique_colors(&image);
         let percentage_of_colors = colors.len() as f32 / Self::ALMOST_ALL_COLORS as f32 * 100.0;
         if percentage_of_colors >= 100.0 {
             info!("All colors from palette (except lcd_off) have representation in source image");
@@ -63,7 +67,7 @@ impl ImageHandler {
             "Template palette \n{}",
             template.as_ansi(AsAnsiType::ColorValueDec)
         );
-        let template_colors: HashMap<[u8; 3], String> = template.into();
+        let template_colors: HashMap<Color, String> = template.into();
         let mut output_image = image.clone();
         let mut processed = 0_usize;
         let mut skipped = 0_usize;
@@ -85,15 +89,15 @@ impl ImageHandler {
                 skipped += 1;
             }
         }
-        let output_image = if let Some(scale) = output_scale {
-            output_image.resize(
-                output_image.width() * scale as u32,
-                output_image.height() * scale as u32,
-                FilterType::Nearest,
-            )
-        } else {
-            output_image
-        };
+        let scale = output_scale.unwrap_or(1);
+        if scale <= 0 || scale > 20 {
+            panic!("Scale must be between 0 and 20");
+        }
+        let output_image = output_image.resize(
+            output_image.width() * scale as u32,
+            output_image.height() * scale as u32,
+            FilterType::Nearest,
+        );
         let mut bytes: Vec<u8> = Vec::new();
         output_image
             .write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)

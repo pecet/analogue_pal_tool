@@ -39,9 +39,8 @@ fn setup_logging() {
 
 fn main() {
     setup_logging();
-    info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH"));
     let cli = Cli::parse();
-
+    info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH"));
     match cli.command {
         Commands::Display {
             display_type,
