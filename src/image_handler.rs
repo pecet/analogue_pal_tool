@@ -2,14 +2,24 @@ use crate::palette::{AsAnsi, AsAnsiType, AsAnsiVec, Color, Palette};
 use image::imageops::FilterType;
 use image::io::Reader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb, Rgba};
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::process::exit;
-use glob::{glob, Paths};
-use itertools::Itertools;
+use clap::ValueEnum;
+
 use crate::helpers::Helpers;
+use itertools::Itertools;
+
+#[derive(Debug, Copy, Clone, Default, ValueEnum)]
+pub enum MergeLayout {
+    #[default]
+    #[clap(alias = "h")]
+    Horizontal,
+    #[clap(alias = "v")]
+    Vertical,
+}
 
 pub struct ImageHandler;
 
@@ -121,6 +131,8 @@ impl ImageHandler {
         output_image_file: &str,
         output_scale: Option<u8>,
         merge: bool,
+        max_columns: u8,
+        merge_layout: MergeLayout,
     ) {
         debug!("Opening palette file {}", pal_file);
         let palette = Palette::load(pal_file);
@@ -133,17 +145,18 @@ impl ImageHandler {
         );
         let template_colors: HashMap<Color, String> = template.into();
         let input_len = input_images.len();
-        let mut images_to_merge: Vec<DynamicImage> = Vec::with_capacity(
-            if merge {
-                input_images.len()
-            } else {
-                // So according to docs this will not allocate vector
-                // which is what we want, so we can avoid wrapping this vector in Option
-                0
-            }
+        let mut images_to_merge: Vec<DynamicImage> = Vec::with_capacity(if merge {
+            input_images.len()
+        } else {
+            // So according to docs this will not allocate vector
+            // which is what we want, so we can avoid wrapping this vector in Option
+            0
+        });
+        let input_images = Helpers::glob_paths(input_images);
+        debug!(
+            "All input files, including globbed results:\n{:#?}",
+            &input_images
         );
-        let input_images = Helpers::glob_paths(&input_images);
-        debug!("All input files, including globbed results:\n{:#?}", &input_images);
         input_images
             .iter()
             .enumerate()
@@ -181,14 +194,37 @@ impl ImageHandler {
                 }
             });
         if merge {
-            let width: u32 = images_to_merge.iter().map(|m| m.width()).sum();
-            let height: u32 = images_to_merge.iter().map(|m| m.height()).max().unwrap();
-            debug!("Merged image size will be: width = {}, height = {}", width, height);
-            let mut merged_image: ImageBuffer::<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width, height);
-            images_to_merge.iter().enumerate().for_each(|(i, image)|{
-                image::imageops::overlay(&mut merged_image, image, (i as u32 * image.width()) as i64, 0);
+            let max_columns = max_columns as usize;
+            let width: u32 = images_to_merge.iter().take(max_columns).map(|m| m.width()).sum();
+            let height: u32 = images_to_merge.chunks(max_columns).map(
+                |chunk| chunk.iter().map(|image| image.height()).sum()
+            ).max().unwrap();
+            debug!(
+                "Merged image size will be: width = {}, height = {}",
+                width, height
+            );
+            let mut merged_image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width, height);
+            images_to_merge.chunks(max_columns).enumerate().for_each(|(i, chunk)| {
+                chunk.iter().enumerate().for_each(|(j, image)| {
+                    let (x, y) = match merge_layout {
+                        MergeLayout::Horizontal => (
+                            (j as u32 * image.width()) as i64,
+                            (i as u32 * image.height()) as i64
+                        ),
+                        MergeLayout::Vertical => (
+                            (i as u32 * image.width()) as i64,
+                            (j as u32 * image.height()) as i64
+                        ),
+                    };
+                    image::imageops::overlay(
+                        &mut merged_image,
+                        image,
+                        x,
+                        y,
+                    );
+                });
             });
-            Self::save_image(&DynamicImage::ImageRgba8(merged_image), &output_image_file);
+            Self::save_image(&DynamicImage::ImageRgba8(merged_image), output_image_file);
         }
     }
 }

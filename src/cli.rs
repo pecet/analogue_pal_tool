@@ -1,5 +1,6 @@
 use crate::palette::AsAnsiType;
 use clap::{command, Parser, Subcommand};
+use crate::image_handler::MergeLayout;
 
 #[derive(Parser, Debug)]
 #[command(author, version = env!("GIT_HASH"), about)]
@@ -42,7 +43,7 @@ pub enum Commands {
         input_image_files: Vec<String>,
         /// Name / path to .png file to write
         ///
-        /// If multiple input images are provided then output will be used as a prefix
+        /// If multiple input images are provided and --merge is not, then output will be used as a prefix
         /// and images with counter e.g.: out000.png out001.png etc. will be created
         #[clap(short, long = "output", required = true)]
         output_image_file: String,
@@ -54,5 +55,11 @@ pub enum Commands {
         /// Merge multiple images into one output image
         #[clap(short = 'm', long = "merge")]
         merge: bool,
+        /// Merge: maximum columns to use
+        #[clap(short = 'k', long = "columns", default_value_t = 4)]
+        max_columns: u8,
+        /// Merge: layout to use while merging
+        #[clap(short = 'l', long = "layout", default_value_t, value_enum)]
+        merge_layout: MergeLayout,
     },
 }
