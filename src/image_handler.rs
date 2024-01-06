@@ -1,7 +1,7 @@
 use crate::palette::{AsAnsi, AsAnsiType, AsAnsiVec, Color, Palette};
 use image::imageops::FilterType;
 use image::io::Reader;
-use image::{DynamicImage, GenericImage, GenericImageView, Pixel, Rgb};
+use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb, Rgba};
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -129,7 +129,7 @@ impl ImageHandler {
         );
         let template_colors: HashMap<Color, String> = template.into();
         let input_len = input_images.len();
-        let _images_to_merge: Vec<DynamicImage> = Vec::new();
+        let mut images_to_merge: Vec<DynamicImage> = Vec::new();
         input_images
             .iter()
             .enumerate()
@@ -160,7 +160,21 @@ impl ImageHandler {
                 } else {
                     output_image_file
                 };
-                Self::save_image(&output_image, &output_image_file);
+                if merge {
+                    images_to_merge.push(output_image);
+                } else {
+                    Self::save_image(&output_image, &output_image_file);
+                }
             });
+        if merge {
+            let width: u32 = images_to_merge.iter().map(|m| m.width()).sum();
+            let height: u32 = images_to_merge.iter().map(|m| m.height()).max().unwrap();
+            debug!("Merged image size will be: width = {}, height = {}", width, height);
+            let mut merged_image: ImageBuffer::<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width, height);
+            images_to_merge.iter().enumerate().for_each(|(i, image)|{
+                image::imageops::overlay(&mut merged_image, image, (i as u32 * image.width()) as i64, 0);
+            });
+            Self::save_image(&DynamicImage::ImageRgba8(merged_image), &output_image_file);
+        }
     }
 }
