@@ -1,6 +1,6 @@
+use crate::image_handler::MergeLayout;
 use crate::palette::AsAnsiType;
 use clap::{command, Parser, Subcommand};
-use crate::image_handler::MergeLayout;
 
 #[derive(Parser, Debug)]
 #[command(author, version = env!("GIT_HASH"), about)]

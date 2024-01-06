@@ -6,7 +6,7 @@ use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
-use std::process::exit;
+
 use clap::ValueEnum;
 
 use crate::helpers::Helpers;
@@ -195,35 +195,39 @@ impl ImageHandler {
             });
         if merge {
             let max_columns = max_columns as usize;
-            let width: u32 = images_to_merge.iter().take(max_columns).map(|m| m.width()).sum();
-            let height: u32 = images_to_merge.chunks(max_columns).map(
-                |chunk| chunk.iter().map(|image| image.height()).sum()
-            ).max().unwrap();
+            let width: u32 = images_to_merge
+                .iter()
+                .take(max_columns)
+                .map(|m| m.width())
+                .sum();
+            let height: u32 = images_to_merge
+                .chunks(max_columns)
+                .map(|chunk| chunk.iter().map(|image| image.height()).sum())
+                .max()
+                .unwrap();
             debug!(
                 "Merged image size will be: width = {}, height = {}",
                 width, height
             );
             let mut merged_image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width, height);
-            images_to_merge.chunks(max_columns).enumerate().for_each(|(i, chunk)| {
-                chunk.iter().enumerate().for_each(|(j, image)| {
-                    let (x, y) = match merge_layout {
-                        MergeLayout::Horizontal => (
-                            (j as u32 * image.width()) as i64,
-                            (i as u32 * image.height()) as i64
-                        ),
-                        MergeLayout::Vertical => (
-                            (i as u32 * image.width()) as i64,
-                            (j as u32 * image.height()) as i64
-                        ),
-                    };
-                    image::imageops::overlay(
-                        &mut merged_image,
-                        image,
-                        x,
-                        y,
-                    );
+            images_to_merge
+                .chunks(max_columns)
+                .enumerate()
+                .for_each(|(i, chunk)| {
+                    chunk.iter().enumerate().for_each(|(j, image)| {
+                        let (x, y) = match merge_layout {
+                            MergeLayout::Horizontal => (
+                                (j as u32 * image.width()) as i64,
+                                (i as u32 * image.height()) as i64,
+                            ),
+                            MergeLayout::Vertical => (
+                                (i as u32 * image.width()) as i64,
+                                (j as u32 * image.height()) as i64,
+                            ),
+                        };
+                        image::imageops::overlay(&mut merged_image, image, x, y);
+                    });
                 });
-            });
             Self::save_image(&DynamicImage::ImageRgba8(merged_image), output_image_file);
         }
     }
