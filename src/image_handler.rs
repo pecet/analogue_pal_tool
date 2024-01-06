@@ -195,16 +195,21 @@ impl ImageHandler {
             });
         if merge {
             let max_columns = max_columns as usize;
-            let width: u32 = images_to_merge
+            let mut width: u32 = images_to_merge
                 .iter()
                 .take(max_columns)
                 .map(|m| m.width())
                 .sum();
-            let height: u32 = images_to_merge
+            let mut height: u32 = images_to_merge
                 .chunks(max_columns)
-                .map(|chunk| chunk.iter().map(|image| image.height()).sum())
-                .max()
-                .unwrap();
+                .map(|chunk|
+                    chunk.iter().map(|image| image.height())
+                .max().unwrap())
+                .sum();
+            if let MergeLayout::Vertical = merge_layout {
+                (width, height) = (height, width);
+            }
+            info!("Merging images - may take a while");
             debug!(
                 "Merged image size will be: width = {}, height = {}",
                 width, height
