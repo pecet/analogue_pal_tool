@@ -100,6 +100,18 @@ impl ImageHandler {
         output_image
     }
 
+    fn save_image(image: &DynamicImage, image_path: &str) {
+        let mut bytes: Vec<u8> = Vec::new();
+        image
+            .write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)
+            .expect("Cannot create output file bytes");
+        let mut file = File::create(image_path.clone())
+            .unwrap_or_else(|_| panic!("Cannot create image file {}", &image_path));
+        file.write_all(&bytes)
+            .unwrap_or_else(|_| panic!("Cannot write to image file {}", &image_path));
+        info!("Saved image file {}", image_path);
+    }
+
     pub fn color_images(
         pal_file: &str,
         input_images: &Vec<String>,
@@ -118,7 +130,7 @@ impl ImageHandler {
         );
         let template_colors: HashMap<Color, String> = template.into();
         let input_len = input_images.len();
-
+        let images_to_merge: Vec<DynamicImage> = Vec::new();
         input_images.iter().enumerate().for_each(|(counter, input_image)| {
             debug!("Opening image file {}", input_image);
             let image = Reader::open(input_image)
@@ -127,11 +139,6 @@ impl ImageHandler {
                 .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
             info!("Opened image file {}", input_image);
             let output_image = Self::color_image(&palette_colors, &template_colors, &image, output_scale.unwrap_or(1));
-
-            let mut bytes: Vec<u8> = Vec::new();
-            output_image
-                .write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)
-                .expect("Cannot create output file bytes");
             let output_image_file =
                 if output_image_file.to_lowercase().ends_with(".png") {
                     output_image_file.to_string()
@@ -146,11 +153,7 @@ impl ImageHandler {
                 } else {
                     output_image_file
                 };
-            let mut file = File::create(output_image_file.clone())
-                .unwrap_or_else(|_| panic!("Cannot create image file {}", &output_image_file));
-            file.write_all(&bytes)
-                .unwrap_or_else(|_| panic!("Cannot write to image file {}", &output_image_file));
-            info!("Saved image file {}", output_image_file);
+            Self::save_image(&output_image, &output_image_file);
         });
     }
 }
