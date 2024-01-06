@@ -9,6 +9,7 @@ use std::io::{Cursor, Write};
 use std::process::exit;
 use glob::{glob, Paths};
 use itertools::Itertools;
+use crate::helpers::Helpers;
 
 pub struct ImageHandler;
 
@@ -141,24 +142,9 @@ impl ImageHandler {
                 0
             }
         );
-        let mut input_images_globbed: Vec<String> = Vec::new();
-        input_images.iter().for_each(|input_image| {
-            if input_image.contains("*") {
-                let paths = glob(input_image).unwrap_or_else(|_| panic!("Incorrect glob pattern: {}", input_image));
-                paths.for_each(|path| {
-                    if let Ok(path) = path {
-                        // TODO: WTF?! Maybe it is possible to do it better?
-                        input_images_globbed.push(path.to_str().unwrap().clone().parse().unwrap());
-                    }
-                });
-            } else {
-                input_images_globbed.push(input_image.to_string());
-            }
-        });
-        input_images_globbed = input_images_globbed.into_iter().unique().collect();
-        input_images_globbed.sort();
-        debug!("All input files, including globbed results:\n{:#?}", &input_images_globbed);
-        input_images_globbed
+        let input_images = Helpers::glob_paths(&input_images);
+        debug!("All input files, including globbed results:\n{:#?}", &input_images);
+        input_images
             .iter()
             .enumerate()
             .for_each(|(counter, input_image)| {
