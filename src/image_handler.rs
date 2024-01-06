@@ -12,8 +12,9 @@ use std::io::{Cursor, Write};
 pub struct ImageHandler;
 
 impl ImageHandler {
-    /// Full palette contains that number of colors
-    const ALL_COLORS: usize = 17;
+    /// Full palette contains almost that number of colors
+    /// It actually contains +1 because we do not count lcd_off here
+    const ALMOST_ALL_COLORS: usize = 16;
 
     /// For some reason colors found on screenshots
     /// so give us some tolerance around that
@@ -42,11 +43,11 @@ impl ImageHandler {
             colors.insert(color);
         }
         debug!("Found {} unique colors in image", colors.len());
-        let percentage_of_colors = (colors.len() as f32 / (Self::ALL_COLORS - 1) as f32) * 100.0;
+        let percentage_of_colors = colors.len() as f32 / Self::ALMOST_ALL_COLORS as f32 * 100.0;
         if percentage_of_colors >= 100.0 {
             info!("All colors from palette (except lcd_off) have representation in source image");
         } else {
-            warn!("Only ~{:.2}% of colors have representation in source image ({} of {}; not counting lcd_off)", percentage_of_colors, colors.len(), Self::ALL_COLORS - 1)
+            warn!("Only ~{:.2}% of colors have representation in source image ({} of {}; not counting lcd_off)", percentage_of_colors, colors.len(), Self::ALMOST_ALL_COLORS)
         }
 
         colors.into_iter().enumerate().for_each(|(i, color)| {
@@ -69,13 +70,11 @@ impl ImageHandler {
         for pixel in image.pixels() {
             let (x, y, color) = pixel;
             let color_rgb = &color.to_rgb().0;
-            let result = template_colors.keys().find(|c| {
-                c[0] <= color_rgb[0].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER)
-                    && c[0] >= color_rgb[0].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
-                    && c[1] <= color_rgb[1].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER)
-                    && c[1] >= color_rgb[1].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
-                    && c[2] <= color_rgb[2].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER)
-                    && c[2] >= color_rgb[2].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
+            let result = template_colors.keys().find(|color| {
+                color.iter().enumerate().all(|(i, c)| {
+                    *c <= color_rgb[i].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER)
+                        && *c >= color_rgb[i].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
+                })
             });
             if let Some(key) = result {
                 let value = template_colors.get(key).unwrap();
