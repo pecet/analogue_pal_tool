@@ -2,10 +2,13 @@ use crate::palette::{AsAnsi, AsAnsiType, AsAnsiVec, Color, Palette};
 use image::imageops::FilterType;
 use image::io::Reader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb, Rgba};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
+use std::process::exit;
+use glob::{glob, Paths};
+use itertools::Itertools;
 
 pub struct ImageHandler;
 
@@ -129,8 +132,33 @@ impl ImageHandler {
         );
         let template_colors: HashMap<Color, String> = template.into();
         let input_len = input_images.len();
-        let mut images_to_merge: Vec<DynamicImage> = Vec::new();
-        input_images
+        let mut images_to_merge: Vec<DynamicImage> = Vec::with_capacity(
+            if merge {
+                input_images.len()
+            } else {
+                // So according to docs this will not allocate vector
+                // which is what we want, so we can avoid wrapping this vector in Option
+                0
+            }
+        );
+        let mut input_images_globbed: Vec<String> = Vec::new();
+        input_images.iter().for_each(|input_image| {
+            if input_image.contains("*") {
+                let paths = glob(input_image).unwrap_or_else(|_| panic!("Incorrect glob pattern: {}", input_image));
+                paths.for_each(|path| {
+                    if let Ok(path) = path {
+                        // TODO: WTF?! Maybe it is possible to do it better?
+                        input_images_globbed.push(path.to_str().unwrap().clone().parse().unwrap());
+                    }
+                });
+            } else {
+                input_images_globbed.push(input_image.to_string());
+            }
+        });
+        input_images_globbed = input_images_globbed.into_iter().unique().collect();
+        input_images_globbed.sort();
+        debug!("All input files, including globbed results:\n{:#?}", &input_images_globbed);
+        input_images_globbed
             .iter()
             .enumerate()
             .for_each(|(counter, input_image)| {
