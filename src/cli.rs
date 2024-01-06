@@ -19,7 +19,7 @@ pub enum Commands {
         /// Name / path to .pal file to read
         pal_file_name: String,
     },
-    /// Create template pal file which will be used for previews.
+    /// Create template pal file which will be used for taking screenshots for colorization.
     ///
     /// After generating such .pal and loading it on your Analogue Pocket
     /// create screenshots with it, then these screenshots can be used
