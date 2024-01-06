@@ -59,11 +59,16 @@ fn main() {
         }
         Commands::ColorizeImage {
             pal_file_name,
-            input_image_file,
+            input_image_files,
             output_image_file,
             scale,
         } => {
-            ImageHandler::color_image(&pal_file_name, &input_image_file, &output_image_file, scale);
+            ImageHandler::color_images(
+                &pal_file_name,
+                &input_image_files,
+                &output_image_file,
+                scale,
+            );
         }
     };
 }
