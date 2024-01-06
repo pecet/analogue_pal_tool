@@ -4,3 +4,5 @@
 /dev_assets
 *.log
 .DS_Store
+/*.png
+/*.pal
