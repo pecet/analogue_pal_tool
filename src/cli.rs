@@ -51,5 +51,8 @@ pub enum Commands {
         /// If not supplied no scaling is applied
         #[clap(short = 's', long = "scale")]
         scale: Option<u8>,
+        /// Merge multiple images into one output image
+        #[clap(short = 'm', long = "merge")]
+        merge: bool,
     },
 }

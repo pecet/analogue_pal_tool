@@ -62,12 +62,14 @@ fn main() {
             input_image_files,
             output_image_file,
             scale,
+            merge,
         } => {
             ImageHandler::color_images(
                 &pal_file_name,
                 &input_image_files,
                 &output_image_file,
                 scale,
+                merge,
             );
         }
     };
