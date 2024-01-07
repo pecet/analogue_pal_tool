@@ -236,4 +236,40 @@ impl ImageHandler {
             Self::save_image(&DynamicImage::ImageRgba8(merged_image), output_image_file);
         }
     }
+
+    pub fn use_palettes_to_color_images(
+        pal_files: &Vec<String>,
+        input_images: &Vec<String>,
+        output_image_file: &str,
+        output_scale: Option<u8>,
+        merge: bool,
+        max_columns: u8,
+        merge_layout: MergeLayout,
+    ) {
+        let pal_files = Helpers::glob_paths(pal_files);
+        if pal_files.len() == 1 {
+            return Self::color_images(
+                &pal_files[0],
+                input_images,
+                output_image_file,
+                output_scale,
+                merge,
+                max_columns,
+                merge_layout,
+            )
+        }
+        pal_files.iter().for_each(|pal| {
+            let pal_name_escaped = pal.replace("/", "$");
+            let output_image_file = output_image_file.replace(".png", &format!("{}.png", pal_name_escaped));
+            Self::color_images(
+                pal,
+                input_images,
+                &output_image_file,
+                output_scale,
+                merge,
+                max_columns,
+                merge_layout,
+            )
+        });
+    }
 }

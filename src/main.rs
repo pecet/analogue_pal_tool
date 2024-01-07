@@ -66,7 +66,7 @@ fn main() {
             max_columns,
             merge_layout,
         } => {
-            ImageHandler::color_images(
+            ImageHandler::use_palettes_to_color_images(
                 &pal_file_name,
                 &input_image_files,
                 &output_image_file,
