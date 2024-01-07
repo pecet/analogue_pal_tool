@@ -6,6 +6,7 @@ use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
+use rayon::prelude::*;
 
 use clap::ValueEnum;
 
@@ -258,7 +259,7 @@ impl ImageHandler {
                 merge_layout,
             )
         }
-        pal_files.iter().for_each(|pal| {
+        pal_files.par_iter().for_each(|pal| {
             let pal_name_escaped = pal.replace("/", "$");
             let output_image_file = output_image_file.replace(".png", &format!("{}.png", pal_name_escaped));
             Self::color_images(

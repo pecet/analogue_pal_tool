@@ -27,6 +27,7 @@ dependencies = [
  "imageproc",
  "itertools 0.12.0",
  "log",
+ "rayon",
 ]
 
 [[package]]
