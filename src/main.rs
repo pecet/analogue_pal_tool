@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+use std::process::exit;
 use analogue_pal_tool::palette::{AsAnsiVec, Palette};
 
 use analogue_pal_tool::cli::{Cli, Commands};
@@ -5,7 +9,9 @@ use analogue_pal_tool::image_handler::ImageHandler;
 use chrono::Local;
 use clap::Parser;
 use colored::Colorize;
-use log::{debug, info, LevelFilter};
+use lazy_static::lazy_static;
+use log::{debug, info, LevelFilter, warn};
+use tera::{Context, Tera};
 
 fn setup_logging() {
     fern::Dispatch::new()
@@ -65,7 +71,15 @@ fn main() {
             merge,
             max_columns,
             merge_layout,
+            generate_html,
         } => {
+            if let Some(last_slash) = &output_image_file.rfind('/') {
+                let output_dir = &output_image_file[0..*last_slash];
+                if !Path::new(output_dir).exists() {
+                    warn!("Directory '{output_dir}' does not exists, it will be created");
+                    fs::create_dir_all(output_dir).expect("Cannot create directory");
+                }
+            }
             ImageHandler::use_palettes_to_color_images(
                 &pal_file_name,
                 &input_image_files,
@@ -74,6 +88,7 @@ fn main() {
                 merge,
                 max_columns,
                 merge_layout,
+                generate_html,
             );
         }
     };

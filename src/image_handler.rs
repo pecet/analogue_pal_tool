@@ -6,12 +6,29 @@ use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
+use std::process::exit;
 use rayon::prelude::*;
 
 use clap::ValueEnum;
 
 use crate::helpers::Helpers;
 use itertools::Itertools;
+use lazy_static::lazy_static;
+use tera::{Context, Tera};
+
+lazy_static! {
+    pub static ref TEMPLATES: Tera = {
+        let mut tera = match Tera::new("templates/**/*") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Template parsing error(s): {}", e);
+                exit(1);
+            }
+        };
+        tera.autoescape_on(vec![]);
+        tera
+    };
+}
 
 #[derive(Debug, Copy, Clone, Default, ValueEnum)]
 pub enum MergeLayout {
@@ -246,6 +263,7 @@ impl ImageHandler {
         merge: bool,
         max_columns: u8,
         merge_layout: MergeLayout,
+        generate_html: bool,
     ) {
         let pal_files = Helpers::glob_paths(pal_files);
         if pal_files.len() == 1 {
@@ -259,7 +277,7 @@ impl ImageHandler {
                 merge_layout,
             )
         }
-        pal_files.par_iter().for_each(|pal| {
+        let pal_images: Vec<_> = pal_files.par_iter().map(|pal| {
             let pal_name_escaped = pal.replace("/", "$");
             let output_image_file = output_image_file.replace(".png", &format!("{}.png", pal_name_escaped));
             Self::color_images(
@@ -270,7 +288,37 @@ impl ImageHandler {
                 merge,
                 max_columns,
                 merge_layout,
-            )
-        });
+            );
+            (pal.clone(), output_image_file)
+        }).collect();
+        if generate_html {
+            let mut context = Context::new();
+            context.insert("version", env!("GIT_HASH"));
+            let mut palletes: Vec<HashMap<_, _>> = Vec::new();
+            // TODO: obviously un-hardcode this
+            let html_file = "output.html";
+            info!("Generating HTML file '{html_file}'...");
+            debug!("Output images = {pal_images:#?}");
+            pal_images.iter().for_each(|(pal, image)| {
+                let pal_name = if let Some(last_slash) = pal.rfind('/') {
+                    &pal[last_slash + 1..pal.len()]
+                } else {
+                    pal
+                };
+                palletes.push(
+                    HashMap::from(
+                        [
+                            ("name", pal_name),
+                            ("path", pal),
+                            ("image", image),
+                        ]
+                    )
+                );
+            });
+            context.insert("palettes", &palletes);
+            let rendered = TEMPLATES.render("index.html", &context).unwrap();
+            std::fs::write(&html_file, rendered).expect("Cannot create HTML file");
+            info!("Created HTML file '{html_file}'")
+        }
     }
 }

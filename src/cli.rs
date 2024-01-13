@@ -73,5 +73,8 @@ pub enum Commands {
         /// Merge: layout to use while merging
         #[clap(short = 'l', long = "layout", default_value_t, value_enum)]
         merge_layout: MergeLayout,
+        /// Generate HTML file for image previews
+        #[clap(short = 't', long = "html", default_value_t = false)]
+        generate_html: bool,
     },
 }
