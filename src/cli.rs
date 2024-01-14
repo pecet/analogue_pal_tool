@@ -1,13 +1,59 @@
 use crate::image_handler::MergeLayout;
 use crate::palette::AsAnsiType;
-use clap::{command, Parser, Subcommand};
+use clap::{command, Parser, Subcommand, ValueEnum};
+use log::LevelFilter;
 use rayon::prelude::*;
+
+/// We need this so we can implement ValueEnum for foreign type LevelFilter
+///
+/// So this is basically copy of that
+#[derive(Debug, Copy, Clone, Default, ValueEnum)]
+pub enum MyLevelFilter {
+    /// A level lower than all log levels.
+    Off,
+    /// Corresponds to the `Error` log level.
+    Error,
+    /// Corresponds to the `Warn` log level.
+    Warn,
+    /// Corresponds to the `Info` log level.
+    #[default]
+    Info,
+    /// Corresponds to the `Debug` log level.
+    Debug,
+    /// Corresponds to the `Trace` log level.
+    Trace,
+}
+
+macro_rules! __mlf_internal {
+    ($level: ident, $current: ident) => {
+        if let MyLevelFilter::$level = $current {
+            return LevelFilter::$level;
+        }
+    };
+}
+
+macro_rules! mlf {
+    ($current: ident, $($args: ident),*) => {
+        $(
+            __mlf_internal!($args, $current);
+        )*
+    }
+}
+
+impl From<MyLevelFilter> for LevelFilter {
+    fn from(value: MyLevelFilter) -> Self {
+        mlf!(value, Off, Error, Warn, Info, Debug, Trace);
+        LevelFilter::Off
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version = env!("GIT_HASH_SHORT"), about)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+    #[clap(short='z', long="log_level", value_enum, default_value_t)]
+    pub log_level: MyLevelFilter,
 }
 
 #[derive(Subcommand, Debug)]

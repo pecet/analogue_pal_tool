@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 use log::{debug, info, LevelFilter, warn};
 use tera::{Context, Tera};
 
-fn setup_logging() {
+fn setup_logging(level: LevelFilter) {
     fern::Dispatch::new()
         // Format the output
         .format(|out, message, record| {
@@ -30,7 +30,7 @@ fn setup_logging() {
             ))
         })
         // Set the default logging level
-        .level(LevelFilter::Debug)
+        .level(level)
         // Output to stdout
         .chain(std::io::stdout())
         // Output to a log file
@@ -44,8 +44,8 @@ fn setup_logging() {
 }
 
 fn main() {
-    setup_logging();
     let cli = Cli::parse();
+    setup_logging(cli.log_level.into());
     info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH"));
     match cli.command {
         Commands::Display {
