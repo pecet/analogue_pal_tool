@@ -4,7 +4,7 @@ use clap::{command, Parser, Subcommand};
 use rayon::prelude::*;
 
 #[derive(Parser, Debug)]
-#[command(author, version = env!("GIT_HASH"), about)]
+#[command(author, version = env!("GIT_HASH_SHORT"), about)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,

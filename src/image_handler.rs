@@ -293,7 +293,7 @@ impl ImageHandler {
         }).collect();
         if generate_html {
             let mut context = Context::new();
-            context.insert("version", env!("GIT_HASH"));
+            context.insert("version", env!("GIT_HASH_SHORT"));
             let mut palletes: Vec<HashMap<_, _>> = Vec::new();
             // TODO: obviously un-hardcode this
             let html_file = "output.html";
