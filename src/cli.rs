@@ -43,6 +43,7 @@ macro_rules! mlf {
 impl From<MyLevelFilter> for LevelFilter {
     fn from(value: MyLevelFilter) -> Self {
         mlf!(value, Off, Error, Warn, Info, Debug, Trace);
+        // This will be never reached as above covers all cases
         LevelFilter::Off
     }
 }
