@@ -6,7 +6,7 @@ use rayon::prelude::*;
 
 /// We need this so we can implement ValueEnum for foreign type LevelFilter
 ///
-/// So this is basically copy of that
+/// So this is basically copy of that original LevelFilter
 #[derive(Debug, Copy, Clone, Default, ValueEnum)]
 pub enum MyLevelFilter {
     /// A level lower than all log levels.
