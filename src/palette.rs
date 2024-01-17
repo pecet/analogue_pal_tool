@@ -6,16 +6,28 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
+use crate::png_helper::PngPalette;
 
 pub type Color = [u8; 3];
 pub type Colors = [Color; 4];
 #[derive(Debug, Clone)]
 pub struct Palette {
-    bg: Colors,
-    obj0: Colors,
-    obj1: Colors,
-    window: Colors,
-    lcd_off: Color,
+    bg: Colors, // 3 * 4 bytes
+    obj0: Colors, // 3 * 4 bytes
+    obj1: Colors, // 3 * 4 bytes
+    window: Colors, // 3 * 4 bytes
+    lcd_off: Color, // 3 bytes
+}
+
+impl From<Palette> for Vec<u8> {
+    fn from(value: Palette) -> Self {
+        let array: [u8; 51] = [255; 51];
+        let all_colors: Vec<Colors> = vec![value.bg, value.obj0, value.obj1, value.window];
+        let mut all_color: Vec<Color> = all_colors.into_iter().flatten().collect();
+        all_color.push(value.lcd_off);
+        let all_u8: Vec<u8> = all_color.into_iter().flatten().collect();
+        all_u8
+    }
 }
 
 impl Default for Palette {

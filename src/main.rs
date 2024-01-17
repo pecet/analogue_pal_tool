@@ -45,9 +45,6 @@ fn setup_logging(level: LevelFilter) {
 }
 
 fn main() {
-    PngHelper::test();
-    exit(2);
-
     let cli = Cli::parse();
     setup_logging(cli.log_level.into());
     info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH"));

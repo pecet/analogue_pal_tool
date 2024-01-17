@@ -6,33 +6,40 @@ use itertools::Itertools;
 use png;
 use crate::palette::Color;
 
-pub struct Palette {
+pub struct PngPalette {
     pal: [u8; 256 * 3],
     index: usize,
 }
-impl From<Palette> for [u8; 256 * 3] {
-    fn from(value: Palette) -> Self {
+impl From<PngPalette> for [u8; 256 * 3] {
+    fn from(value: PngPalette) -> Self {
         value.pal
     }
 }
-impl Palette {
-    fn new() -> Self {
+impl PngPalette {
+    pub fn new() -> Self {
         Self {
             pal: [255; 256 * 3],
             index: 0,
         }
     }
-    fn push(&mut self, color: Color) -> bool {
-        if self.index < 256 {
-            self.pal[self.index * 3] = color[0];
-            self.pal[self.index * 3 + 1] = color[1];
-            self.pal[self.index * 3 + 2] = color[2];
+
+    pub fn push(&mut self, color: Color) -> bool {
+        let value = self.set(self.index, color);
+        if value {
             self.index += 1;
+        }
+        value
+    }
+    pub fn set(&mut self, index: usize, color: Color) -> bool {
+        if index < 256 {
+            self.pal[index * 3] = color[0];
+            self.pal[index * 3 + 1] = color[1];
+            self.pal[index * 3 + 2] = color[2];
             return true
         }
         false
     }
-    fn index_of(&self, color: Color) -> Option<usize> {
+    pub fn index_of(&self, color: Color) -> Option<usize> {
         let pos = self.pal.chunks_exact(3).map(|c| {
             let rgb: [u8; 3] = c.try_into().expect("Cannot convert color chunk");
             rgb
