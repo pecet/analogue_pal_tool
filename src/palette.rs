@@ -68,11 +68,7 @@ impl TryFrom<Vec<u8>> for Palette {
         if value.len() != 56 {
             return Err(Error::InvalidSize(value.len()));
         }
-        if !(value[51] == 0x81
-            && value[52] == 0x41
-            && value[53] == 0x50
-            && value[54] == 0x47
-            && value[55] == 0x42)
+        if value[51..56] != [0x81, 0x41, 0x50, 0x47, 0x42]
         {
             return Err(Error::IncorrectFooter);
         }
