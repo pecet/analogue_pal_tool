@@ -4,7 +4,7 @@ use itertools::Itertools;
 pub struct Helpers;
 
 impl Helpers {
-    pub fn glob_paths(paths: &Vec<String>) -> Vec<String> {
+    pub fn glob_paths(paths: &[String]) -> Vec<String> {
         let mut paths_globbed: Vec<String> = Vec::new();
         paths.iter().for_each(|input_image| {
             if input_image.contains(&"*".to_string()) {

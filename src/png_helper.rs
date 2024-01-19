@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::BufWriter;
-use std::ops::Index;
 
 use crate::palette::Color;
 use itertools::Itertools;

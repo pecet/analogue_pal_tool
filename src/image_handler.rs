@@ -12,7 +12,6 @@ use std::process::exit;
 use clap::ValueEnum;
 
 use crate::helpers::Helpers;
-use itertools::Itertools;
 use lazy_static::lazy_static;
 use tera::{Context, Tera};
 
