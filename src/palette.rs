@@ -194,26 +194,9 @@ impl Palette {
         let mut file =
             File::create(file_name).unwrap_or_else(|_| panic!("Cannot create file {}", file_name));
 
-        // TODO: macro this
-        let data: Vec<u8> = self.bg.into_iter().flatten().collect();
+        let data: Vec<u8> = self.clone().into();
         file.write_all(&data)
-            .unwrap_or_else(|_| panic!("Cannot write 'bg' to {}", file_name));
-
-        let data: Vec<u8> = self.obj0.into_iter().flatten().collect();
-        file.write_all(&data)
-            .unwrap_or_else(|_| panic!("Cannot write 'obj0' to {}", file_name));
-
-        let data: Vec<u8> = self.obj1.into_iter().flatten().collect();
-        file.write_all(&data)
-            .unwrap_or_else(|_| panic!("Cannot write 'obj1' to {}", file_name));
-
-        let data: Vec<u8> = self.window.into_iter().flatten().collect();
-        file.write_all(&data)
-            .unwrap_or_else(|_| panic!("Cannot write 'window' to {}", file_name));
-
-        let data: Vec<u8> = self.lcd_off.to_vec();
-        file.write_all(&data)
-            .unwrap_or_else(|_| panic!("Cannot write 'lcd_off' to {}", file_name));
+            .unwrap_or_else(|_| panic!("Cannot write 'data' to {}", file_name));
 
         let footer: Vec<u8> = vec![0x81, 0x41, 0x50, 0x47, 0x42];
         file.write_all(&footer)
