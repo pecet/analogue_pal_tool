@@ -3,10 +3,24 @@ use colored::*;
 use log::{debug, error, info};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::fs;
+use std::{fs, io};
+use std::backtrace::Backtrace;
 use std::fs::File;
 use std::io::Write;
+use thiserror::Error;
 use crate::png_helper::PngPalette;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Cannot convert from Palette to Vec<u8>")]
+    GenericConversionError,
+    #[error("Invalid palette data size, must be exactly 56 bytes, but is {0}")]
+    InvalidSize(usize),
+    #[error("Incorrect footer")]
+    IncorrectFooter,
+    #[error("Error while reading file {0}")]
+    IoError(#[from] io::Error),
+}
 
 pub type Color = [u8; 3];
 pub type Colors = [Color; 4];
@@ -21,12 +35,54 @@ pub struct Palette {
 
 impl From<Palette> for Vec<u8> {
     fn from(value: Palette) -> Self {
-        let array: [u8; 51] = [255; 51];
         let all_colors: Vec<Colors> = vec![value.bg, value.obj0, value.obj1, value.window];
         let mut all_color: Vec<Color> = all_colors.into_iter().flatten().collect();
         all_color.push(value.lcd_off);
         let all_u8: Vec<u8> = all_color.into_iter().flatten().collect();
         all_u8
+    }
+}
+
+macro_rules! data_to_array {
+    ($data: ident, $start: expr) => {
+        $data[$start..$start + 3]
+            .try_into()
+            .expect("Cannot convert vec to fixed size array")
+    };
+}
+
+macro_rules! data_to_multi_array {
+    ($data: ident, $start: literal) => {
+        [
+            data_to_array!($data, $start),
+            data_to_array!($data, $start + 3),
+            data_to_array!($data, $start + 6),
+            data_to_array!($data, $start + 9),
+        ]
+    };
+}
+
+impl TryFrom<Vec<u8>> for Palette {
+    type Error = Error;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        if value.len() != 56 {
+            return Err(Error::InvalidSize(value.len()));
+        }
+        if !(value[51] == 0x81
+            && value[52] == 0x41
+            && value[53] == 0x50
+            && value[54] == 0x47
+            && value[55] == 0x42)
+        {
+            return Err(Error::IncorrectFooter);
+        }
+        Ok(Self {
+            bg: data_to_multi_array!(value, 0),
+            obj0: data_to_multi_array!(value, 12),
+            obj1: data_to_multi_array!(value, 24),
+            window: data_to_multi_array!(value, 36),
+            lcd_off: data_to_array!(value, 48),
+        })
     }
 }
 
@@ -125,54 +181,12 @@ impl AsAnsiVec for Colors {
     }
 }
 
-macro_rules! data_to_array {
-    ($data: ident, $start: expr) => {
-        $data[$start..$start + 3]
-            .try_into()
-            .expect("Cannot convert vec to fixed size array")
-    };
-}
-
-macro_rules! data_to_multi_array {
-    ($data: ident, $start: literal) => {
-        [
-            data_to_array!($data, $start),
-            data_to_array!($data, $start + 3),
-            data_to_array!($data, $start + 6),
-            data_to_array!($data, $start + 9),
-        ]
-    };
-}
 impl Palette {
     /// Load palette from file
-    pub fn load(file_name: &str) -> Self {
+    pub fn load(file_name: &str) -> Result<Self, Error> {
         debug!("Loading palette from {}", file_name);
-        let data = fs::read(file_name).expect("Cannot read palette file");
-        if data.len() != 56 {
-            panic!(
-                "Palette file should have exactly 56 bytes, but it has {} bytes",
-                data.len()
-            );
-        }
-        // check footer
-        if data[51] == 0x81
-            && data[52] == 0x41
-            && data[53] == 0x50
-            && data[54] == 0x47
-            && data[55] == 0x42
-        {
-            debug!("Footer of palette file is correct");
-        } else {
-            error!("Footer of palette file is incorrect, will try to read anyway")
-        }
-        info!("Palette from {} loaded", file_name);
-        Self {
-            bg: data_to_multi_array!(data, 0),
-            obj0: data_to_multi_array!(data, 12),
-            obj1: data_to_multi_array!(data, 24),
-            window: data_to_multi_array!(data, 36),
-            lcd_off: data_to_array!(data, 48),
-        }
+        let data = fs::read(file_name)?;
+        data.try_into()
     }
 
     pub fn save(&self, file_name: &str) {

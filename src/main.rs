@@ -53,7 +53,10 @@ fn main() {
             display_type,
             pal_file_name,
         } => {
-            let palette = Palette::load(&pal_file_name);
+            let palette = Palette::load(&pal_file_name)
+                .unwrap_or_else(|err| {
+                    panic!("Cannot load palette: {err}")
+                });
             debug!("Loaded palette:\n{:?}", &palette);
             info!(
                 "Palette as ANSI 24-bit colored strings:\n{}",

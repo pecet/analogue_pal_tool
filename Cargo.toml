@@ -6,6 +6,7 @@ authors = ["pecet"]
 build = "build.rs"
 
 [dependencies]
+anyhow = { version = "1.0.79", features = ["backtrace"] }
 chrono = "0.4"
 clap = { version = "4.4", features = ["derive"] }
 colored = "2.1"
@@ -19,3 +20,4 @@ log = "0.4"
 png = "0.17.11"
 rayon = "1.8.0"
 tera = "1.19.1"
+thiserror = "1.0.56"

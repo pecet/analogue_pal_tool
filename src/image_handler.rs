@@ -153,7 +153,7 @@ impl ImageHandler {
         merge_layout: MergeLayout,
     ) {
         debug!("Opening palette file {}", pal_file);
-        let palette = Palette::load(pal_file);
+        let palette = Palette::load(pal_file).unwrap();
         let palette_colors: HashMap<String, Color> = palette.into();
 
         let template = Palette::default();
