@@ -3,11 +3,11 @@ use image::imageops::FilterType;
 use image::io::Reader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb, Rgba};
 use log::{debug, info, warn};
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::process::exit;
-use rayon::prelude::*;
 
 use clap::ValueEnum;
 
@@ -220,9 +220,7 @@ impl ImageHandler {
                 .sum();
             let mut height: u32 = images_to_merge
                 .chunks(max_columns)
-                .map(|chunk|
-                    chunk.iter().map(|image| image.height())
-                .max().unwrap())
+                .map(|chunk| chunk.iter().map(|image| image.height()).max().unwrap())
                 .sum();
             if let MergeLayout::Vertical = merge_layout {
                 (width, height) = (height, width);
@@ -275,22 +273,26 @@ impl ImageHandler {
                 merge,
                 max_columns,
                 merge_layout,
-            )
-        }
-        let pal_images: Vec<_> = pal_files.par_iter().map(|pal| {
-            let pal_name_escaped = pal.replace("/", "$");
-            let output_image_file = output_image_file.replace(".png", &format!("{}.png", pal_name_escaped));
-            Self::color_images(
-                pal,
-                input_images,
-                &output_image_file,
-                output_scale,
-                merge,
-                max_columns,
-                merge_layout,
             );
-            (pal.clone(), output_image_file)
-        }).collect();
+        }
+        let pal_images: Vec<_> = pal_files
+            .par_iter()
+            .map(|pal| {
+                let pal_name_escaped = pal.replace('/', "$");
+                let output_image_file =
+                    output_image_file.replace(".png", &format!("{}.png", pal_name_escaped));
+                Self::color_images(
+                    pal,
+                    input_images,
+                    &output_image_file,
+                    output_scale,
+                    merge,
+                    max_columns,
+                    merge_layout,
+                );
+                (pal.clone(), output_image_file)
+            })
+            .collect();
         if generate_html {
             let mut context = Context::new();
             context.insert("version", env!("GIT_HASH_SHORT"));
@@ -305,19 +307,15 @@ impl ImageHandler {
                 } else {
                     pal
                 };
-                palletes.push(
-                    HashMap::from(
-                        [
-                            ("name", pal_name),
-                            ("path", pal),
-                            ("image", image),
-                        ]
-                    )
-                );
+                palletes.push(HashMap::from([
+                    ("name", pal_name),
+                    ("path", pal),
+                    ("image", image),
+                ]));
             });
             context.insert("palettes", &palletes);
             let rendered = TEMPLATES.render("index.html", &context).unwrap();
-            std::fs::write(&html_file, rendered).expect("Cannot create HTML file");
+            std::fs::write(html_file, rendered).expect("Cannot create HTML file");
             info!("Created HTML file '{html_file}'")
         }
     }

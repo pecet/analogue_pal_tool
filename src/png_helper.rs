@@ -1,10 +1,10 @@
 use std::fs::File;
 use std::io::BufWriter;
 use std::ops::Index;
-use std::path::Path;
+
+use crate::palette::Color;
 use itertools::Itertools;
 use png;
-use crate::palette::Color;
 
 pub struct PngPalette {
     pal: [u8; 256 * 3],
@@ -15,6 +15,12 @@ impl From<PngPalette> for [u8; 256 * 3] {
         value.pal
     }
 }
+impl Default for PngPalette {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PngPalette {
     pub fn new() -> Self {
         Self {
@@ -35,33 +41,27 @@ impl PngPalette {
             self.pal[index * 3] = color[0];
             self.pal[index * 3 + 1] = color[1];
             self.pal[index * 3 + 2] = color[2];
-            return true
+            return true;
         }
         false
     }
     pub fn index_of(&self, color: Color) -> Option<usize> {
-        let pos = self.pal.chunks_exact(3).map(|c| {
-            let rgb: [u8; 3] = c.try_into().expect("Cannot convert color chunk");
-            rgb
-        }).find_position(|c| {
-            c == &color[..]
-        });
-        match pos {
-            None => None,
-            Some((index, _)) => Some(index)
-        }
+        let pos = self
+            .pal
+            .chunks_exact(3)
+            .map(|c| {
+                let rgb: [u8; 3] = c.try_into().expect("Cannot convert color chunk");
+                rgb
+            })
+            .find_position(|c| c == &color[..]);
+        pos.map(|(index, _)| index)
     }
 }
 
 pub struct PngHelper;
 
 impl PngHelper {
-    pub fn save(file_name: &str,
-                    width: u32,
-                    height: u32,
-                    palette: &[u8],
-                    data: &[u8],
-    ) {
+    pub fn save(file_name: &str, width: u32, height: u32, palette: &[u8], data: &[u8]) {
         let file = File::create(file_name).expect("Cannot create .png file");
         let writer = BufWriter::new(file);
         let mut encoder = png::Encoder::new(writer, width, height);
@@ -80,6 +80,6 @@ impl PngHelper {
         encoder.set_palette(palette);
         let mut writer = encoder.write_header().unwrap();
         // write sequence of palette indexes
-        writer.write_image_data(&data).unwrap(); // save
+        writer.write_image_data(data).unwrap(); // save
     }
 }

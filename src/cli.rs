@@ -53,7 +53,7 @@ impl From<MyLevelFilter> for LevelFilter {
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
-    #[clap(short='z', long="log_level", value_enum, default_value_t)]
+    #[clap(short = 'z', long = "log_level", value_enum, default_value_t)]
     pub log_level: MyLevelFilter,
 }
 

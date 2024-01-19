@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::process::exit;
+
 use analogue_pal_tool::palette::{AsAnsiVec, Palette};
 
 use analogue_pal_tool::cli::{Cli, Commands};
@@ -9,10 +8,8 @@ use analogue_pal_tool::image_handler::ImageHandler;
 use chrono::Local;
 use clap::Parser;
 use colored::Colorize;
-use lazy_static::lazy_static;
-use log::{debug, info, LevelFilter, warn};
-use tera::{Context, Tera};
-use analogue_pal_tool::png_helper::PngHelper;
+
+use log::{debug, info, warn, LevelFilter};
 
 fn setup_logging(level: LevelFilter) {
     fern::Dispatch::new()
@@ -54,9 +51,7 @@ fn main() {
             pal_file_name,
         } => {
             let palette = Palette::load(&pal_file_name)
-                .unwrap_or_else(|err| {
-                    panic!("Cannot load palette: {err}")
-                });
+                .unwrap_or_else(|err| panic!("Cannot load palette: {err}"));
             debug!("Loaded palette:\n{:?}", &palette);
             info!(
                 "Palette as ANSI 24-bit colored strings:\n{}",

@@ -1,14 +1,13 @@
 use clap::ValueEnum;
 use colored::*;
-use log::{debug, error, info};
+use log::{debug, error};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::{fs, io};
-use std::backtrace::Backtrace;
+
 use std::fs::File;
 use std::io::Write;
 use thiserror::Error;
-use crate::png_helper::PngPalette;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -26,9 +25,9 @@ pub type Color = [u8; 3];
 pub type Colors = [Color; 4];
 #[derive(Debug, Clone)]
 pub struct Palette {
-    bg: Colors, // 3 * 4 bytes
-    obj0: Colors, // 3 * 4 bytes
-    obj1: Colors, // 3 * 4 bytes
+    bg: Colors,     // 3 * 4 bytes
+    obj0: Colors,   // 3 * 4 bytes
+    obj1: Colors,   // 3 * 4 bytes
     window: Colors, // 3 * 4 bytes
     lcd_off: Color, // 3 bytes
 }
@@ -68,8 +67,7 @@ impl TryFrom<Vec<u8>> for Palette {
         if value.len() != 56 {
             return Err(Error::InvalidSize(value.len()));
         }
-        if value[51..56] != [0x81, 0x41, 0x50, 0x47, 0x42]
-        {
+        if value[51..56] != [0x81, 0x41, 0x50, 0x47, 0x42] {
             return Err(Error::IncorrectFooter);
         }
         Ok(Self {
