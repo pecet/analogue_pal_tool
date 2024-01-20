@@ -1,9 +1,16 @@
 use std::fs::File;
 use std::io::BufWriter;
 
-use crate::palette::Color;
+use crate::palette::{Color, Palette};
 use itertools::Itertools;
 use png;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Array referenced is too big")]
+    ArrayTooBig,
+}
 
 pub struct PngPalette {
     pal: [u8; 256 * 3],
@@ -17,6 +24,36 @@ impl From<PngPalette> for [u8; 256 * 3] {
 impl Default for PngPalette {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl TryFrom<&[u8]> for PngPalette {
+    type Error = Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() >= 256 * 3 {
+            return Err(Error::ArrayTooBig);
+        }
+        let mut array: [u8; 256 * 3] = [255; 256 * 3];
+        value.iter().enumerate().for_each(|(i, v)| {
+            array[i] = *v;
+        });
+        Ok(Self {
+            pal: array,
+            index: 0,
+        })
+    }
+}
+
+impl From<Palette> for PngPalette {
+    fn from(value: Palette) -> Self {
+        let pal_array: Vec<u8> = value.into();
+        // Can unwrap, will contain exactly 17 * 3 bytes as underlying type
+        let pal_array: [u8; 17 * 3] = pal_array.try_into().unwrap();
+        // (&pal_array) = &[u8; 17 * 3] not &[u8], hence specify this directly here
+        let pal_array_ref: &[u8] = &pal_array;
+        // Similarly here we can unwrap for the same reason as above
+        pal_array_ref.try_into().unwrap()
     }
 }
 
