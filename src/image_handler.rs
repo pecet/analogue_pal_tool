@@ -65,7 +65,6 @@ impl ImageHandler {
     fn palettize_image (
         template: Palette,
         image: &DynamicImage,
-        output_scale: u8,
     ) -> Vec<u8> {
         let colors = Self::find_unique_colors(image);
         let percentage_of_colors = colors.len() as f32 / Self::ALMOST_ALL_COLORS as f32 * 100.0;
@@ -94,75 +93,6 @@ impl ImageHandler {
         image_buffer
     }
 
-    fn color_image(
-        palette_colors: &HashMap<String, Color>,
-        template_colors: &HashMap<Color, String>,
-        image: &DynamicImage,
-        output_scale: u8,
-    ) -> DynamicImage {
-        let colors = Self::find_unique_colors(image);
-        let percentage_of_colors = colors.len() as f32 / Self::ALMOST_ALL_COLORS as f32 * 100.0;
-        if percentage_of_colors >= 100.0 {
-            info!("All colors from palette (except lcd_off) have representation in source image");
-        } else {
-            warn!("Only ~{:.2}% of colors have representation in source image ({} of {}; not counting lcd_off)", percentage_of_colors, colors.len(), Self::ALMOST_ALL_COLORS)
-        }
-
-        colors.into_iter().enumerate().for_each(|(i, color)| {
-            debug!(
-                "{}{} {}",
-                color.as_ansi(AsAnsiType::ColorValueHex, None),
-                color.as_ansi(AsAnsiType::ColorValueDec, None),
-                i
-            );
-        });
-        let mut output_image = image.clone();
-        let mut processed = 0_usize;
-        let mut skipped = 0_usize;
-        for pixel in image.pixels() {
-            let (x, y, color) = pixel;
-            let color_rgb = &color.to_rgb().0;
-            let result = template_colors.keys().find(|color| {
-                color.iter().enumerate().all(|(i, c)| {
-                    *c <= color_rgb[i].saturating_add(Self::TEMPLATE_TOLERANCE_UPPER)
-                        && *c >= color_rgb[i].saturating_sub(Self::TEMPLATE_TOLERANCE_LOWER)
-                })
-            });
-            if let Some(key) = result {
-                let value = template_colors.get(key).unwrap();
-                let new_color = Rgb(*palette_colors.get(value).unwrap());
-                output_image.put_pixel(x, y, new_color.to_rgba());
-                processed += 1;
-            } else {
-                skipped += 1;
-            }
-        }
-        let scale = output_scale;
-        if !(1..=20).contains(&scale) {
-            panic!("Scale must be between 1 and 20");
-        }
-        // no need to check if scale = 1 here as DynamicImage::resize
-        // already just returns original image if this is true
-        let output_image = output_image.resize(
-            output_image.width() * scale as u32,
-            output_image.height() * scale as u32,
-            FilterType::Nearest,
-        );
-        let percentage = processed as f32 / (processed + skipped) as f32 * 100.0;
-        debug!(
-            "Processed {} of {} pixels ~{:.2}%",
-            processed,
-            processed + skipped,
-            percentage
-        );
-        if percentage >= 100.0 {
-            info!("Successfully colorized all pixels");
-        } else {
-            warn!("Not all pixels were colorized (~{:.2}%), maybe you used incorrect template .pal file on Analogue Pocket..?", percentage)
-        }
-        output_image
-    }
-
     fn save_image(image: &DynamicImage, image_path: &str) {
         let mut bytes: Vec<u8> = Vec::new();
         image
@@ -173,6 +103,33 @@ impl ImageHandler {
         file.write_all(&bytes)
             .unwrap_or_else(|_| panic!("Cannot write to image file {}", &image_path));
         info!("Saved image file {}", image_path);
+    }
+
+    fn scale_paletted_image(image_array: &[u8], width: usize, height: usize, scale: usize) -> Vec<u8> {
+        if scale == 1 {
+            debug!("Passed 1 as scale factor - no scaling necessary");
+            return image_array.into();
+        } else if scale == 0 {
+            panic!("Cannot scale with 0 scale factor!")
+        }
+        let new_width = width * scale;
+        let new_height = height * scale;
+        debug!("Scaling paletted image *{} - from {},{} to {},{}", scale, width, height, new_width, new_height);
+        let mut scaled_array = vec![255_u8; new_width * new_height];
+        for x in (0..width) {
+            for y in (0..height) {
+                let position = y * width + x;
+                let color_index = image_array[position];
+                // For each pixel of original image we need to create square in new image
+                for i in (x * scale..x * scale + scale) {
+                    for j in (y * scale..y * scale + scale) {
+                        let new_position = j * new_width + i;
+                        scaled_array[new_position] = color_index;
+                    }
+                }
+            }
+        }
+        scaled_array
     }
 
     pub fn color_images(
@@ -186,6 +143,7 @@ impl ImageHandler {
     ) {
         debug!("Opening palette file {}", pal_file);
         let palette = Palette::load(pal_file).unwrap();
+        let output_scale = output_scale.unwrap_or(1);
 
         let template = Palette::default();
         debug!(
@@ -215,7 +173,8 @@ impl ImageHandler {
                     .decode()
                     .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
                 info!("Opened image file {}", input_image);
-                let output_image_bytes = Self::palettize_image(template.clone(), &image, 1);
+                let output_image_bytes = Self::palettize_image(template.clone(), &image);
+                let output_image_bytes = Self::scale_paletted_image(&output_image_bytes, image.width() as usize, image.height() as usize, output_scale as usize);
                 let output_image_file = if output_image_file.to_lowercase().ends_with(".png") {
                     output_image_file.to_string()
                 } else {
@@ -237,8 +196,8 @@ impl ImageHandler {
                     let pal: [u8; 256 * 3] = pal.into();
                     PngHelper::save(
                         &output_image_file,
-                        image.width(),
-                        image.height(),
+                        image.width() * output_scale as u32,
+                        image.height() * output_scale as u32,
                         &pal,
                         &output_image_bytes
                     );
