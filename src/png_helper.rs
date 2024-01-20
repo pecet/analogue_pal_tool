@@ -13,10 +13,10 @@ pub enum Error {
 }
 
 pub struct PngPalette {
-    pal: [u8; 256 * 3],
+    pal: [u8; PngPalette::SIZE],
     index: usize,
 }
-impl From<PngPalette> for [u8; 256 * 3] {
+impl From<PngPalette> for [u8; PngPalette::SIZE] {
     fn from(value: PngPalette) -> Self {
         value.pal
     }
@@ -31,10 +31,10 @@ impl TryFrom<&[u8]> for PngPalette {
     type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() >= 256 * 3 {
+        if value.len() >= PngPalette::SIZE {
             return Err(Error::ArrayTooBig);
         }
-        let mut array: [u8; 256 * 3] = [255; 256 * 3];
+        let mut array: [u8; PngPalette::SIZE] = [255; PngPalette::SIZE];
         value.iter().enumerate().for_each(|(i, v)| {
             array[i] = *v;
         });
@@ -58,9 +58,10 @@ impl From<Palette> for PngPalette {
 }
 
 impl PngPalette {
+    const SIZE: usize = 256 * 3;
     pub fn new() -> Self {
         Self {
-            pal: [255; 256 * 3],
+            pal: [255; Self::SIZE],
             index: 0,
         }
     }
