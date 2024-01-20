@@ -161,17 +161,6 @@ impl ImageHandler {
             &input_images
         );
         let input_len = input_images.len();
-        /*
-           Yes I'm stupid and I need to visualise this
-           e.g. max columns = 4
-           and input_len = 10
-           0 1 2 3
-           4 5 6 7
-           8 9
-           So we've got 4 columns obviously
-           and 3 rows
-        */
-
         let (input_width, input_height) = PngHelper::get_size(&input_images[0]);
         let max_columns = max_columns as usize;
         let merged_width: usize = max_columns * input_width as usize * output_scale as usize;
@@ -237,7 +226,7 @@ impl ImageHandler {
                         )
                     } else {
                         // this will never happen
-                        panic!("What the fuck")
+                        panic!("If this happened you should probably play lottery")
                     }
                 } else {
                     let pal: PngPalette = palette.clone().into();
@@ -266,7 +255,7 @@ impl ImageHandler {
                 );
             } else {
                 // this will never happen
-                panic!("What the fuck")
+                panic!("If this happened you should probably play lottery")
             }
         }
     }
