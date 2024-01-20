@@ -155,19 +155,34 @@ impl ImageHandler {
             "Template palette loaded \n{}",
             template.as_ansi(AsAnsiType::ColorValueDec)
         );
-        let input_len = input_images.len();
-        let images_to_merge: Vec<DynamicImage> = Vec::with_capacity(if merge {
-            input_images.len()
-        } else {
-            // So according to docs this will not allocate vector
-            // which is what we want, so we can avoid wrapping this vector in Option
-            0
-        });
         let input_images = Helpers::glob_paths(input_images);
         debug!(
             "All input files, including globbed results:\n{:#?}",
             &input_images
         );
+        let input_len = input_images.len();
+        /*
+            Yes I'm stupid and I need to visualise this
+            e.g. max columns = 4
+            and input_len = 10
+            0 1 2 3
+            4 5 6 7
+            8 9
+            So we've got 4 columns obviously
+            and 3 rows
+         */
+
+        let (input_width, input_height) = PngHelper::get_size(&input_images[0]);
+        let max_columns = max_columns as usize;
+        let merged_width: usize = max_columns * input_width as usize * output_scale as usize;
+        let no_rows = (input_len as f32 / max_columns as f32).ceil() as usize;
+        let merged_height = no_rows * input_height as usize * output_scale as usize;
+        let mut merged_image_bytes = if merge {
+            Some(vec![255_u8; merged_width * merged_height])
+        } else {
+            None
+        };
+
         input_images
             .iter()
             .enumerate()
@@ -202,10 +217,31 @@ impl ImageHandler {
                     output_image_file
                 };
                 if merge {
-                    //images_to_merge.push(output_image);
+                    if let Some(merged_image_bytes) = &mut merged_image_bytes {
+                        let source_width = (image.width() * output_scale as u32) as usize;
+                        let source_height = (image.height() * output_scale as u32) as usize;
+                        let y = counter / max_columns;
+                        let x = counter % max_columns;
+                        let y = y * source_height;
+                        let x = x * source_width;
+                        PngHelper::copy_from_to(
+                            &output_image_bytes,
+                            // I like Rust but I don't like constant type conversions, maybe this is my fault though
+                            source_width,
+                            source_height,
+                            merged_image_bytes,
+                            merged_width,
+                            merged_height,
+                            x,
+                            y,
+                        )
+                    } else { // this will never happen
+                        panic!("What the fuck")
+                    }
                 } else {
                     let pal: PngPalette = palette.clone().into();
                     let pal: [u8; 256 * 3] = pal.into();
+                    info!("Saving image file: {}", &output_image_file);
                     PngHelper::save(
                         &output_image_file,
                         image.width() * output_scale as u32,
@@ -216,44 +252,14 @@ impl ImageHandler {
                 }
             });
         if merge {
-            let max_columns = max_columns as usize;
-            let mut width: u32 = images_to_merge
-                .iter()
-                .take(max_columns)
-                .map(|m| m.width())
-                .sum();
-            let mut height: u32 = images_to_merge
-                .chunks(max_columns)
-                .map(|chunk| chunk.iter().map(|image| image.height()).max().unwrap())
-                .sum();
-            if let MergeLayout::Vertical = merge_layout {
-                (width, height) = (height, width);
+            if let Some(merged_image_bytes) = &merged_image_bytes {
+                let pal: PngPalette = palette.clone().into();
+                let pal: [u8; 256 * 3] = pal.into();
+                info!("Saving merged image file: {}", &output_image_file);
+                PngHelper::save(&output_image_file, merged_width as u32, merged_height as u32, &pal, merged_image_bytes);
+            } else { // this will never happen
+                panic!("What the fuck")
             }
-            info!("Merging images - may take a while");
-            debug!(
-                "Merged image size will be: width = {}, height = {}",
-                width, height
-            );
-            let mut merged_image: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width, height);
-            images_to_merge
-                .chunks(max_columns)
-                .enumerate()
-                .for_each(|(i, chunk)| {
-                    chunk.iter().enumerate().for_each(|(j, image)| {
-                        let (x, y) = match merge_layout {
-                            MergeLayout::Horizontal => (
-                                (j as u32 * image.width()) as i64,
-                                (i as u32 * image.height()) as i64,
-                            ),
-                            MergeLayout::Vertical => (
-                                (i as u32 * image.width()) as i64,
-                                (j as u32 * image.height()) as i64,
-                            ),
-                        };
-                        image::imageops::overlay(&mut merged_image, image, x, y);
-                    });
-                });
-            Self::save_image(&DynamicImage::ImageRgba8(merged_image), output_image_file);
         }
     }
 

@@ -3,6 +3,7 @@ use std::io::BufWriter;
 
 use crate::palette::{Color, Palette};
 use itertools::Itertools;
+use log::debug;
 use png;
 use thiserror::Error;
 
@@ -137,4 +138,34 @@ impl PngHelper {
         // write sequence of palette indexes
         writer.write_image_data(data).unwrap(); // save
     }
-}
+
+    pub fn get_size(file_name: &str) -> (u32, u32) {
+        let decoder = png::Decoder::new(File::open(file_name).unwrap());
+        let mut reader = decoder.read_info().unwrap();
+        let mut buf = vec![0; reader.output_buffer_size()];
+        let info = reader.next_frame(&mut buf).unwrap();
+        (info.width, info.height)
+    }
+
+    /// Copy image bytes from one source to destination.
+    ///
+    /// Does NOT check if source image fits in destination and does not crops,
+    /// so be aware of panics
+    pub fn copy_from_to(source: &[u8], source_width: usize, source_height: usize,
+                   destination: &mut [u8], destination_width: usize, destination_height: usize,
+                   destination_x: usize, destination_y: usize,
+    ) {
+        // I really hope I don't reinvent wheel here... but I probably am
+        for x in destination_x .. source_width + destination_x {
+            for y in destination_y .. source_height + destination_y {
+                // Either we add here or subtract there so whatever
+                // Maybe we will save some microseconds, or maybe compiler optimizes it anyway idk
+                let source_x = x - destination_x;
+                let source_y = y - destination_y;
+                let destination_position = y * destination_width + x;
+                let source_position = source_y * source_width + source_x;
+                destination[destination_position] = source[source_position];
+            }
+        }
+    }
+ }
