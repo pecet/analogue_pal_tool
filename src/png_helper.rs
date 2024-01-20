@@ -3,7 +3,7 @@ use std::io::BufWriter;
 
 use crate::palette::{Color, Palette};
 use itertools::Itertools;
-use log::debug;
+
 use png;
 use thiserror::Error;
 
@@ -151,13 +151,19 @@ impl PngHelper {
     ///
     /// Does NOT check if source image fits in destination and does not crops,
     /// so be aware of panics
-    pub fn copy_from_to(source: &[u8], source_width: usize, source_height: usize,
-                   destination: &mut [u8], destination_width: usize, destination_height: usize,
-                   destination_x: usize, destination_y: usize,
+    pub fn copy_from_to(
+        source: &[u8],
+        source_width: usize,
+        source_height: usize,
+        destination: &mut [u8],
+        destination_width: usize,
+        _destination_height: usize,
+        destination_x: usize,
+        destination_y: usize,
     ) {
         // I really hope I don't reinvent wheel here... but I probably am
-        for x in destination_x .. source_width + destination_x {
-            for y in destination_y .. source_height + destination_y {
+        for x in destination_x..source_width + destination_x {
+            for y in destination_y..source_height + destination_y {
                 // Either we add here or subtract there so whatever
                 // Maybe we will save some microseconds, or maybe compiler optimizes it anyway idk
                 let source_x = x - destination_x;
@@ -168,4 +174,4 @@ impl PngHelper {
             }
         }
     }
- }
+}

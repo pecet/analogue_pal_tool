@@ -1,7 +1,7 @@
 use crate::palette::{AsAnsi, AsAnsiType, AsAnsiVec, Color, Palette};
 
 use image::io::Reader;
-use image::{DynamicImage, GenericImageView, ImageBuffer, Pixel, Rgba};
+use image::{DynamicImage, GenericImageView, Pixel};
 use log::{debug, info, warn};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -144,7 +144,7 @@ impl ImageHandler {
         output_scale: Option<u8>,
         merge: bool,
         max_columns: u8,
-        merge_layout: MergeLayout,
+        _merge_layout: MergeLayout,
     ) {
         debug!("Opening palette file {}", pal_file);
         let palette = Palette::load(pal_file).unwrap();
@@ -162,15 +162,15 @@ impl ImageHandler {
         );
         let input_len = input_images.len();
         /*
-            Yes I'm stupid and I need to visualise this
-            e.g. max columns = 4
-            and input_len = 10
-            0 1 2 3
-            4 5 6 7
-            8 9
-            So we've got 4 columns obviously
-            and 3 rows
-         */
+           Yes I'm stupid and I need to visualise this
+           e.g. max columns = 4
+           and input_len = 10
+           0 1 2 3
+           4 5 6 7
+           8 9
+           So we've got 4 columns obviously
+           and 3 rows
+        */
 
         let (input_width, input_height) = PngHelper::get_size(&input_images[0]);
         let max_columns = max_columns as usize;
@@ -235,7 +235,8 @@ impl ImageHandler {
                             x,
                             y,
                         )
-                    } else { // this will never happen
+                    } else {
+                        // this will never happen
                         panic!("What the fuck")
                     }
                 } else {
@@ -256,8 +257,15 @@ impl ImageHandler {
                 let pal: PngPalette = palette.clone().into();
                 let pal: [u8; 256 * 3] = pal.into();
                 info!("Saving merged image file: {}", &output_image_file);
-                PngHelper::save(&output_image_file, merged_width as u32, merged_height as u32, &pal, merged_image_bytes);
-            } else { // this will never happen
+                PngHelper::save(
+                    output_image_file,
+                    merged_width as u32,
+                    merged_height as u32,
+                    &pal,
+                    merged_image_bytes,
+                );
+            } else {
+                // this will never happen
                 panic!("What the fuck")
             }
         }
