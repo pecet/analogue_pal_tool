@@ -173,8 +173,10 @@ impl ImageHandler {
                     .decode()
                     .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
                 info!("Opened image file {}", input_image);
-                let output_image_bytes = Self::palettize_image(template.clone(), &image);
-                let output_image_bytes = Self::scale_paletted_image(&output_image_bytes, image.width() as usize, image.height() as usize, output_scale as usize);
+                let output_image_bytes = {
+                    let unscaled = Self::palettize_image(template.clone(), &image);
+                    Self::scale_paletted_image(&unscaled, image.width() as usize, image.height() as usize, output_scale as usize)
+                };
                 let output_image_file = if output_image_file.to_lowercase().ends_with(".png") {
                     output_image_file.to_string()
                 } else {
