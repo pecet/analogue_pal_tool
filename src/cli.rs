@@ -1,6 +1,6 @@
 use crate::image_handler::MergeLayout;
 use crate::palette::AsAnsiType;
-use clap::{Args, command, Parser, Subcommand, ValueEnum};
+use clap::{command, Args, Parser, Subcommand, ValueEnum};
 use log::LevelFilter;
 
 /// We need this so we can implement ValueEnum for foreign type LevelFilter

@@ -44,9 +44,16 @@ fn setup_logging(level: LevelFilter) {
 fn main() {
     let cli = Cli::parse();
     setup_logging(cli.log_level.into());
-    info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH_SHORT"));
+    info!(
+        "{} [{}] loaded",
+        env!("CARGO_PKG_NAME"),
+        env!("GIT_HASH_SHORT")
+    );
     match cli.command {
-        Commands::Display(Display { display_type, pal_file_name }) => {
+        Commands::Display(Display {
+            display_type,
+            pal_file_name,
+        }) => {
             let palette = Palette::load(&pal_file_name)
                 .unwrap_or_else(|err| panic!("Cannot load palette: {err}"));
             debug!("Loaded palette:\n{:?}", &palette);
@@ -59,7 +66,16 @@ fn main() {
             let palette = Palette::default();
             palette.save(&output_pal_file);
         }
-        Commands::ColorizeImage(ColorizeImage { pal_file_name, input_image_files, output_image_file, scale, merge, max_columns, merge_layout, generate_html }) => {
+        Commands::ColorizeImage(ColorizeImage {
+            pal_file_name,
+            input_image_files,
+            output_image_file,
+            scale,
+            merge,
+            max_columns,
+            merge_layout,
+            generate_html,
+        }) => {
             if let Some(last_slash) = &output_image_file.rfind('/') {
                 let output_dir = &output_image_file[0..*last_slash];
                 if !Path::new(output_dir).exists() {

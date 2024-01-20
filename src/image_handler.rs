@@ -1,7 +1,7 @@
 use crate::palette::{AsAnsi, AsAnsiType, AsAnsiVec, Color, Palette};
-use image::imageops::FilterType;
+
 use image::io::Reader;
-use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb, Rgba};
+use image::{DynamicImage, GenericImageView, ImageBuffer, Pixel, Rgba};
 use log::{debug, info, warn};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -12,9 +12,9 @@ use std::process::exit;
 use clap::ValueEnum;
 
 use crate::helpers::Helpers;
+use crate::png_helper::{PngHelper, PngPalette};
 use lazy_static::lazy_static;
 use tera::{Context, Tera};
-use crate::png_helper::{PngHelper, PngPalette};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -62,10 +62,7 @@ impl ImageHandler {
         colors
     }
 
-    fn palettize_image (
-        template: Palette,
-        image: &DynamicImage,
-    ) -> Vec<u8> {
+    fn palettize_image(template: Palette, image: &DynamicImage) -> Vec<u8> {
         let colors = Self::find_unique_colors(image);
         let percentage_of_colors = colors.len() as f32 / Self::ALMOST_ALL_COLORS as f32 * 100.0;
         if percentage_of_colors >= 100.0 {
@@ -105,7 +102,12 @@ impl ImageHandler {
         info!("Saved image file {}", image_path);
     }
 
-    fn scale_paletted_image(image_array: &[u8], width: usize, height: usize, scale: usize) -> Vec<u8> {
+    fn scale_paletted_image(
+        image_array: &[u8],
+        width: usize,
+        height: usize,
+        scale: usize,
+    ) -> Vec<u8> {
         if scale == 1 {
             debug!("Passed 1 as scale factor - no scaling necessary");
             return image_array.into();
@@ -114,15 +116,18 @@ impl ImageHandler {
         }
         let new_width = width * scale;
         let new_height = height * scale;
-        debug!("Scaling paletted image *{} - from {},{} to {},{}", scale, width, height, new_width, new_height);
+        debug!(
+            "Scaling paletted image *{} - from {},{} to {},{}",
+            scale, width, height, new_width, new_height
+        );
         let mut scaled_array = vec![255_u8; new_width * new_height];
-        for x in (0..width) {
-            for y in (0..height) {
+        for x in 0..width {
+            for y in 0..height {
                 let position = y * width + x;
                 let color_index = image_array[position];
                 // For each pixel of original image we need to create square in new image
-                for i in (x * scale..x * scale + scale) {
-                    for j in (y * scale..y * scale + scale) {
+                for i in x * scale..x * scale + scale {
+                    for j in y * scale..y * scale + scale {
                         let new_position = j * new_width + i;
                         scaled_array[new_position] = color_index;
                     }
@@ -151,7 +156,7 @@ impl ImageHandler {
             template.as_ansi(AsAnsiType::ColorValueDec)
         );
         let input_len = input_images.len();
-        let mut images_to_merge: Vec<DynamicImage> = Vec::with_capacity(if merge {
+        let images_to_merge: Vec<DynamicImage> = Vec::with_capacity(if merge {
             input_images.len()
         } else {
             // So according to docs this will not allocate vector
@@ -175,7 +180,12 @@ impl ImageHandler {
                 info!("Opened image file {}", input_image);
                 let output_image_bytes = {
                     let unscaled = Self::palettize_image(template.clone(), &image);
-                    Self::scale_paletted_image(&unscaled, image.width() as usize, image.height() as usize, output_scale as usize)
+                    Self::scale_paletted_image(
+                        &unscaled,
+                        image.width() as usize,
+                        image.height() as usize,
+                        output_scale as usize,
+                    )
                 };
                 let output_image_file = if output_image_file.to_lowercase().ends_with(".png") {
                     output_image_file.to_string()
@@ -201,7 +211,7 @@ impl ImageHandler {
                         image.width() * output_scale as u32,
                         image.height() * output_scale as u32,
                         &pal,
-                        &output_image_bytes
+                        &output_image_bytes,
                     );
                 }
             });

@@ -102,12 +102,13 @@ impl PngPalette {
                 let rgb: Color = c.try_into().expect("Cannot convert color chunk");
                 rgb
             })
-            .find_position(|c|
-                c.into_iter().enumerate().all(|(i, x)| {
-                    (color[i].saturating_sub(tolerance)..= color[i].saturating_add(tolerance)).contains(x)
+            .find_position(|c| {
+                c.iter().enumerate().all(|(i, x)| {
+                    (color[i].saturating_sub(tolerance)..=color[i].saturating_add(tolerance))
+                        .contains(x)
                     //*x <= color[i].saturating_add(tolerance) && *x >= color[i].saturating_sub(tolerance)
                 })
-            );
+            });
         pos.map(|(index, _)| index)
     }
 }
