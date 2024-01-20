@@ -14,6 +14,7 @@ use clap::ValueEnum;
 use crate::helpers::Helpers;
 use lazy_static::lazy_static;
 use tera::{Context, Tera};
+use crate::png_helper::{PngHelper, PngPalette};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -59,6 +60,38 @@ impl ImageHandler {
         }
         debug!("Found {} unique colors in image", colors.len());
         colors
+    }
+
+    fn palettize_image (
+        template: Palette,
+        image: &DynamicImage,
+        output_scale: u8,
+    ) -> Vec<u8> {
+        let colors = Self::find_unique_colors(image);
+        let percentage_of_colors = colors.len() as f32 / Self::ALMOST_ALL_COLORS as f32 * 100.0;
+        if percentage_of_colors >= 100.0 {
+            info!("All colors from palette (except lcd_off) have representation in source image");
+        } else {
+            warn!("Only ~{:.2}% of colors have representation in source image ({} of {}; not counting lcd_off)", percentage_of_colors, colors.len(), Self::ALMOST_ALL_COLORS)
+        }
+        let template: PngPalette = template.into();
+        let (width, height) = (image.width() as usize, image.height() as usize);
+        let mut image_buffer = vec![255_u8; width * height];
+
+        let mut position = 0_usize;
+        for (_, _, color) in image.pixels() {
+            let color = color.to_rgb().0;
+            let color_index = template.index_of_with_tolerance(color, 8);
+            // We just store color index in Vector, because this is how paletted images really work
+            // Because we will be supplying different palette when saving - this will colorize our image
+            // Much faster than previously used here PNG RGBA and manually putting whole RGBA pixels
+            // However we will be needed to implement scaling and merging ourselves - can we do it?
+            if let Some(color_index) = color_index {
+                image_buffer[position] = color_index as u8; // palette index will never exceed u8 size
+            }
+            position += 1;
+        }
+        image_buffer
     }
 
     fn color_image(
@@ -153,14 +186,12 @@ impl ImageHandler {
     ) {
         debug!("Opening palette file {}", pal_file);
         let palette = Palette::load(pal_file).unwrap();
-        let palette_colors: HashMap<String, Color> = palette.into();
 
         let template = Palette::default();
         debug!(
             "Template palette loaded \n{}",
             template.as_ansi(AsAnsiType::ColorValueDec)
         );
-        let template_colors: HashMap<Color, String> = template.into();
         let input_len = input_images.len();
         let mut images_to_merge: Vec<DynamicImage> = Vec::with_capacity(if merge {
             input_images.len()
@@ -184,12 +215,7 @@ impl ImageHandler {
                     .decode()
                     .unwrap_or_else(|_| panic!("Cannot decode image file {}", input_image));
                 info!("Opened image file {}", input_image);
-                let output_image = Self::color_image(
-                    &palette_colors,
-                    &template_colors,
-                    &image,
-                    output_scale.unwrap_or(1),
-                );
+                let output_image_bytes = Self::palettize_image(template.clone(), &image, 1);
                 let output_image_file = if output_image_file.to_lowercase().ends_with(".png") {
                     output_image_file.to_string()
                 } else {
@@ -205,9 +231,17 @@ impl ImageHandler {
                     output_image_file
                 };
                 if merge {
-                    images_to_merge.push(output_image);
+                    //images_to_merge.push(output_image);
                 } else {
-                    Self::save_image(&output_image, &output_image_file);
+                    let pal: PngPalette = palette.clone().into();
+                    let pal: [u8; 256 * 3] = pal.into();
+                    PngHelper::save(
+                        &output_image_file,
+                        image.width(),
+                        image.height(),
+                        &pal,
+                        &output_image_bytes
+                    );
                 }
             });
         if merge {

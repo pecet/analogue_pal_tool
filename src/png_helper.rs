@@ -93,6 +93,23 @@ impl PngPalette {
             .find_position(|c| c == &color[..]);
         pos.map(|(index, _)| index)
     }
+
+    pub fn index_of_with_tolerance(&self, color: Color, tolerance: u8) -> Option<usize> {
+        let pos = self
+            .pal
+            .chunks_exact(3)
+            .map(|c| {
+                let rgb: Color = c.try_into().expect("Cannot convert color chunk");
+                rgb
+            })
+            .find_position(|c|
+                c.into_iter().enumerate().all(|(i, x)| {
+                    (color[i].saturating_sub(tolerance)..= color[i].saturating_add(tolerance)).contains(x)
+                    //*x <= color[i].saturating_add(tolerance) && *x >= color[i].saturating_sub(tolerance)
+                })
+            );
+        pos.map(|(index, _)| index)
+    }
 }
 
 pub struct PngHelper;

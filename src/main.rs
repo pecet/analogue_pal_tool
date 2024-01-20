@@ -44,7 +44,7 @@ fn setup_logging(level: LevelFilter) {
 fn main() {
     let cli = Cli::parse();
     setup_logging(cli.log_level.into());
-    info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH"));
+    info!("{} [{}] loaded", env!("CARGO_PKG_NAME"), env!("GIT_HASH_SHORT"));
     match cli.command {
         Commands::Display(Display { display_type, pal_file_name }) => {
             let palette = Palette::load(&pal_file_name)
