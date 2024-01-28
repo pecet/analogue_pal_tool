@@ -11,7 +11,7 @@ Prebuilt binaries are TODO. For now use [cargo from Rust](https://www.rust-lang.
     ```
 * Display palette from .pal file in terminal (it must support 24-bit color obviously, use good terminal emulator like [Kitty](https://sw.kovidgoyal.net/kitty/) or [Alacritty](https://alacritty.org/))
     ```
-    cargo run -- --palette palette.pal
+    cargo run -- display palette.pal
     ```
   ![example of display command](doc_images/display_example.png)
 * Create template .pal file:
