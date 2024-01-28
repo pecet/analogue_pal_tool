@@ -33,6 +33,7 @@ cargo run -- colorize-image -t -m -s 3 -o 'dev_assets/output/test2.png' -p '/Use
 
 ## TODO
 * [ ] Add prebuilt binaries
+  * Linux and MacOS should be easy, but I currently do not have Windows machine / VM
 * [ ] Add option to use convert images back to palettes (images are already generated as PNG files with 8-bit palette so this should be easy)
 * [ ] Add LUA scripting support for palette manipulation because why not
 
